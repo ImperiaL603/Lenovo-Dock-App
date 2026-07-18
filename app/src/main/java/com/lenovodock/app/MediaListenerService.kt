@@ -81,11 +81,15 @@ class MediaListenerService : NotificationListenerService() {
         val speed = if (playing) ps.playbackSpeed else 0f
         // Spotify's embedded art bitmap is unreliable; its https art URL is stable.
         val art = md.getString(SPOTIFY_ART_HTTPS_URI)?.takeIf { it.isNotBlank() }
-        return NowPlaying(playing, title, artist, album, duration, position, speed, art)
+        val playlist = if (md.getString(SPOTIFY_CONTEXT_URI).orEmpty().contains(":playlist:"))
+            md.getString(SPOTIFY_CONTEXT_TITLE)?.takeIf { it.isNotBlank() } else null
+        return NowPlaying(playing, title, artist, album, duration, position, speed, art, playlist)
     }
 
     companion object {
         private const val SPOTIFY_PKG = "com.spotify.music"
         private const val SPOTIFY_ART_HTTPS_URI = "com.spotify.music.extra.ART_HTTPS_URI"
+        private const val SPOTIFY_CONTEXT_URI = "com.spotify.music.extra.CONTEXT_URI"
+        private const val SPOTIFY_CONTEXT_TITLE = "com.spotify.music.extra.CONTEXT_TITLE"
     }
 }

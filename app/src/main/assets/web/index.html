@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/spotify.css" />
 </head>
 <body>
 
@@ -65,11 +66,48 @@
   <span>&#9881;</span>
 </button>
 
+<!-- ===================== SPOTIFY ===================== -->
+<section id="spotify-mode">
+  <img class="spotify-bg" id="spotify-bg" alt="" />
+  <div class="spotify-layout">
+
+    <div class="player-column">
+      <div class="album-art-box">
+        <img id="album-art-img" alt="" />
+        <div class="album-art-placeholder">Album Art</div>
+        <div class="control-buttons">
+          <button class="ctrl-btn" id="ctrl-prev" aria-label="Previous">&#9198;</button>
+          <button class="ctrl-btn" id="ctrl-playpause" aria-label="Play or pause">&#9199;</button>
+          <button class="ctrl-btn" id="ctrl-next" aria-label="Next">&#9197;</button>
+        </div>
+      </div>
+      <div class="progress-row">
+        <span class="progress-time" id="progress-elapsed">0:00</span>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <span class="progress-time" id="progress-total">0:00</span>
+      </div>
+      <div class="song-name" id="song-name"></div>
+      <div class="artist-names" id="artist-names"></div>
+    </div>
+
+    <div class="lyrics-column">
+      <div class="playlist-name" id="playlist-name"></div>
+      <div class="lyrics-window" id="lyrics-window">
+        <div class="lyric-line prev"></div>
+        <div class="lyric-line current"></div>
+        <div class="lyric-line next"></div>
+      </div>
+      <div class="up-next" id="up-next">
+        <span class="up-next-label">Up Next</span>
+        <span class="up-next-track" id="up-next-track"></span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 <script src="js/wallpaper.js"></script>
 <script src="js/script.js"></script>
-
-<!-- TEMPORARY: step-2a media-session pipeline readout; removed in 2b. -->
-<pre id="np-debug" style="position:fixed;top:8px;left:8px;z-index:99;margin:0;padding:6px 8px;max-width:60vw;color:#4ade80;font:12px/1.4 monospace;background:rgba(0,0,0,.55);white-space:pre-wrap;">np: waiting…</pre>
 <script src="js/spotify.js"></script>
 </body>
 </html>

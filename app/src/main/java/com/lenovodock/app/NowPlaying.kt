@@ -15,7 +15,8 @@ data class NowPlaying(
     val durationMs: Long,
     val positionMs: Long,
     val speed: Float,
-    val art: String?,   // JPEG data URI, or null when the session has no art
+    val art: String?,          // https album-art URL, or null when the session has no art
+    val playlistName: String?, // set only when playing from a playlist
 ) {
     private val hasArt: Boolean get() = art != null
 
@@ -29,5 +30,6 @@ data class NowPlaying(
         put("speed", speed.toDouble())
         put("hasArt", hasArt)
         put("art", art ?: JSONObject.NULL)
+        put("playlistName", playlistName ?: JSONObject.NULL)
     }.toString()
 }
