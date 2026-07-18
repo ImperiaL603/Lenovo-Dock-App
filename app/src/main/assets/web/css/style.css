@@ -1,0 +1,334 @@
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --bg: #000000;
+  --fg: #ffffff;
+  --fg-dim: rgba(255, 255, 255, 0.55);
+  --fg-dimmer: rgba(255, 255, 255, 0.28);
+  --border: rgba(255, 255, 255, 0.85);
+  --border-soft: rgba(255, 255, 255, 0.35);
+
+  --font-day: 'Anurati', 'Michroma', 'Segoe UI', sans-serif;
+  --font-body: 'Quicksand', 'Segoe UI', sans-serif;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ============================================================
+   Anurati - not on Google Fonts. Drop the font file here:
+   assets/fonts/Anurati-Regular.otf (or .woff2)
+   Until then, the fallback (Michroma / letter-spaced sans) is used.
+   ============================================================ */
+@font-face {
+  font-family: 'Anurati';
+  src: url('../assets/fonts/Anurati-Regular.woff2') format('woff2'),
+       url('../assets/fonts/Anurati-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+
+.bg-video {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+#clock-mode {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.clock-block {
+  text-align: center;
+  transition: transform 0.5s var(--ease-smooth);
+}
+
+/* When the panel is open, nudge the clock block up */
+#clock-mode.panel-open .clock-block {
+  transform: translateY(-14vh);
+}
+
+.clock-day {
+  font-family: var(--font-day);
+  font-size: clamp(3.8rem, 9.5vw, 7.2rem);
+  letter-spacing: 0.05em;
+  font-weight: 400;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+.clock-date {
+  font-family: var(--font-body);
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 500;
+  color: var(--fg);
+  margin-top: 0.6rem;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 3px 30px rgba(0, 0, 0, 0.7);
+}
+
+.clock-time {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 3px 30px rgba(0, 0, 0, 0.7);
+}
+
+.clock-time .dash {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  color: var(--fg);
+  font-weight: 300;
+}
+
+.clock-hm {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.clock-ampm {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- Alarms / Timers panel ---------- */
+.panel {
+  position: absolute;
+  left: 50%;
+  bottom: 4vh;
+  transform: translate(-50%, 30px);
+  width: min(70vw, 850px);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height 0.5s var(--ease-smooth),
+              opacity 0.4s var(--ease-smooth),
+              transform 0.5s var(--ease-smooth);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+}
+
+#clock-mode.panel-open .panel {
+  max-height: 60vh;
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.panel-section {
+  margin-bottom: 1.2rem;
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.panel-list {
+  min-height: 4.2rem;
+  padding: 0.9rem 1.1rem;
+  position: relative;
+}
+
+.placeholder-row {
+  color: var(--fg-dim);
+  font-size: 0.95rem;
+}
+
+/* ---------- "+" add button ---------- */
+.add-btn {
+  position: absolute;
+  right: 5vw;
+  bottom: 4vh;
+  width: 2.8rem;
+  height: 2.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 300;
+  line-height: 1;
+  transition: transform 0.25s var(--ease-spring), background 0.25s;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.add-btn:active {
+  transform: scale(0.92);
+}
+
+#clock-mode.panel-open .add-btn {
+  transform: rotate(45deg);
+}
+
+#clock-mode.panel-open .add-btn:active {
+  transform: rotate(45deg) scale(0.92);
+}
+
+/* ---------- Settings button (bottom-left) ---------- */
+.settings-btn {
+  position: absolute;
+  left: 5vw;
+  bottom: 4vh;
+  width: 2.8rem;
+  height: 2.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+  transition: transform 0.25s var(--ease-spring), background 0.25s;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.settings-btn span {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.settings-btn:active {
+  transform: scale(0.92);
+}
+
+body.settings-open .settings-btn {
+  transform: rotate(45deg);
+}
+
+body.settings-open .settings-btn:active {
+  transform: rotate(45deg) scale(0.92);
+}
+
+/* ---------- Settings panel ---------- */
+.settings-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 4vh;
+  transform: translate(-50%, 30px);
+  width: min(70vw, 850px);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height 0.5s var(--ease-smooth),
+              opacity 0.4s var(--ease-smooth),
+              transform 0.5s var(--ease-smooth);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+}
+
+body.settings-open .settings-panel {
+  max-height: 60vh;
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.settings-panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.settings-section-label {
+  margin-top: 1rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--fg-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.wallpaper-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 42vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wallpaper-chip {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg-dim);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  transition: transform 0.2s var(--ease-spring), background 0.2s, color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.wallpaper-chip:active {
+  transform: scale(0.94);
+}
+
+.wallpaper-chip.selected {
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--border);
+}
+
+body.settings-open #clock-mode .clock-block {
+  transform: translateY(-14vh);
+}

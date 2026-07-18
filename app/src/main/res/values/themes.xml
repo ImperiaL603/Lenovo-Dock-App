@@ -1,0 +1,7 @@
+<resources>
+    <!-- Platform fullscreen theme: no appcompat/Material dependency needed for a
+         WebView-only shell. Black background matches the dashboard design. -->
+    <style name="Theme.LenovoDock" parent="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Tablet Dashboard</title>
+
+<!-- Quicksand from Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <video id="bg-video" class="bg-video" autoplay muted loop playsinline
+       src="assets/video/endless-summer-horizon.1920x1080.mp4"></video>
+
+  <!-- ===================== CLOCK ===================== -->
+  <section id="clock-mode">
+
+    <div class="clock-block" id="clock-block">
+      <div class="clock-day" id="clock-day">Thursday</div>
+      <div class="clock-date" id="clock-date">17 July 2026</div>
+      <div class="clock-time">
+        <span class="dash">-</span>
+        <span class="clock-hm" id="clock-hm">2:36</span>
+        <span class="clock-ampm" id="clock-ampm">AM</span>
+        <span class="dash">-</span>
+      </div>
+    </div>
+
+    <!-- Alarms / Timers panel: hidden until "+" is tapped -->
+    <div class="panel" id="panel">
+      <div class="panel-section">
+        <div class="panel-title">Alarms</div>
+        <div class="panel-list" id="alarms-list">
+          <div class="placeholder-row">No alarms set</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">Timers</div>
+        <div class="panel-list" id="timers-list">
+          <div class="placeholder-row">No timers running</div>
+        </div>
+      </div>
+    </div>
+
+    <button id="add-btn" class="add-btn" aria-label="Add alarm or timer">
+      <span>+</span>
+    </button>
+
+  </section>
+
+<!-- Settings panel: hidden until gear icon is tapped -->
+<div class="settings-panel" id="settings-panel">
+  <div class="settings-panel-title">Settings</div>
+  <div class="settings-section-label">Wallpaper</div>
+  <div class="wallpaper-grid" id="wallpaper-grid"></div>
+</div>
+
+<button id="settings-btn" class="settings-btn" aria-label="Open settings">
+  <span>&#9881;</span>
+</button>
+
+<script src="js/wallpaper.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>

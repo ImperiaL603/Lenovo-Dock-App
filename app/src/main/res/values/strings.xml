@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Lenovo Dock</string>
+    <string name="media_listener_label">Lenovo Dock media access</string>
+</resources>
