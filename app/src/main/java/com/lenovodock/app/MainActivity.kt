@@ -15,6 +15,7 @@ import android.webkit.WebViewClient
 class MainActivity : Activity() {
 
     private lateinit var webView: WebView
+    private var pageReady = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,11 +28,25 @@ class MainActivity : Activity() {
             settings.domStorageEnabled = true                    // localStorage: wallpaper choice
             settings.mediaPlaybackRequiresUserGesture = false    // autoplay the muted wallpaper video
             settings.allowFileAccess = true                      // play wallpaper videos from app storage
-            webViewClient = WebViewClient()                      // keep navigation inside the WebView
+            webViewClient = object : WebViewClient() {           // inject once the page is ready
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    pageReady = true
+                    inject(NowPlayingRepository.current)
+                }
+            }
             addJavascriptInterface(MediaBridge(this@MainActivity), MediaBridge.NAME)
             loadUrl("file:///android_asset/web/index.html")
         }
         setContentView(webView)
+
+        NowPlayingRepository.setObserver { inject(it) }
+    }
+
+    private fun inject(np: NowPlaying?) {
+        if (!pageReady) return
+        val call = if (np == null) "window.LenovoDock&&LenovoDock.onPlaybackGone()"
+        else "window.LenovoDock&&LenovoDock.onNowPlaying(${np.toJson()})"
+        webView.evaluateJavascript(call, null)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -53,6 +68,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        NowPlayingRepository.setObserver(null)
         webView.destroy()
         super.onDestroy()
     }
