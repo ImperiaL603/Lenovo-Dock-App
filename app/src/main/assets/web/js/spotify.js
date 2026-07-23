@@ -19,7 +19,7 @@ window.LenovoDock = (function () {
   let lastArt = null;
   let lyrics = [];
   let lyricsIdx = -1;
-  const lyricsEls = {};
+  const lyricEls = {};
 
   const $ = (id) => document.getElementById(id);
   const els = {};
