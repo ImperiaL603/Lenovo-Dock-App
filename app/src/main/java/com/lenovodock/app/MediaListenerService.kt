@@ -64,7 +64,11 @@ class MediaListenerService : NotificationListenerService() {
         NowPlayingRepository.update(null)
     }
 
-    private fun publish() = NowPlayingRepository.update(controller?.let(::snapshot))
+    private fun publish() {
+    val np = controller?.let(::snapshot)
+    NowPlayingRepository.update(np)
+    np?.let { LyricsRepository.onTrack(it.title, it.artist, it.album, it.durationMs) }
+    }
 
     private fun snapshot(c: MediaController): NowPlaying? {
         val md = c.metadata ?: return null

@@ -32,6 +32,7 @@ class MainActivity : Activity() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     pageReady = true
                     inject(NowPlayingRepository.current)
+                    injectLyrics(LyricsRepository.current)
                 }
             }
             addJavascriptInterface(MediaBridge(this@MainActivity), MediaBridge.NAME)
@@ -40,6 +41,14 @@ class MainActivity : Activity() {
         setContentView(webView)
 
         NowPlayingRepository.setObserver { inject(it) }
+        NowPlayingRepository.setObserver { inject(it) }
+        LyricsRepository.setObserver { injectLyrics(it) }
+    }
+
+    private fun injectLyrics(lines: List<LyricsRepository.Line>) {
+    if (!pageReady) return
+    val json = LyricsRepository.toJson(lines)
+    webView.evaluateJavascript("window.LenovoDock&&LenovoDock.onLyrics($json)", null)
     }
 
     private fun inject(np: NowPlaying?) {
@@ -69,6 +78,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         NowPlayingRepository.setObserver(null)
+        LyricsRepository.setObserver(null)
         webView.destroy()
         super.onDestroy()
     }

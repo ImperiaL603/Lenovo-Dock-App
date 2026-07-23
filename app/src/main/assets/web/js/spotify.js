@@ -17,13 +17,20 @@ window.LenovoDock = (function () {
   let spotifyActive = false;
   let graceTimer = null;
   let lastArt = null;
+  let lyrics = [];
+  let lyricsIdx = -1;
+  const lyricsEls = {};
 
   const $ = (id) => document.getElementById(id);
   const els = {};
   function cacheEls() {
-    ['spotify-mode', 'spotify-bg', 'album-art-img', 'song-name', 'artist-names',
-     'playlist-name', 'progress-elapsed', 'progress-total', 'progress-fill', 'bg-video']
-      .forEach((id) => { els[id] = $(id); });
+  ['spotify-mode', 'spotify-bg', 'album-art-img', 'song-name', 'artist-names',
+   'playlist-name', 'progress-elapsed', 'progress-total', 'progress-fill', 'bg-video',
+   'lyrics-window']
+    .forEach((id) => { els[id] = $(id); });
+  lyricEls.prev = els['lyrics-window'].querySelector('.lyric-line.prev');
+  lyricEls.current = els['lyrics-window'].querySelector('.lyric-line.current');
+  lyricEls.next = els['lyrics-window'].querySelector('.lyric-line.next');
   }
 
   // ---- API called from native ----
@@ -43,6 +50,29 @@ window.LenovoDock = (function () {
   function onPlaybackGone() {
     if (np) np.playing = false;
     if (spotifyActive) scheduleExit();
+  }
+
+  function onLyrics(data) {
+  lyrics = Array.isArray(data) ? data : [];
+  lyricsIdx = -1; // force a re-render on the next tick
+  if (lyrics.length === 0) {
+    lyricEls.prev.textContent = '';
+    lyricEls.current.textContent = 'No lyrics found';
+    lyricEls.next.textContent = '';
+  }
+  }
+
+  function updateLyrics(pos) {
+    if (!lyrics.length) return;
+    let idx = lyrics.length - 1;
+    for (let i = 0; i < lyrics.length; i++) {
+      if (lyrics[i].t > pos) { idx = i - 1; break; }
+    }
+    if (idx === lyricsIdx) return;
+    lyricsIdx = idx;
+    lyricEls.prev.textContent = idx > 0 ? lyrics[idx - 1].text : '';
+    lyricEls.current.textContent = idx >= 0 ? lyrics[idx].text : '';
+    lyricEls.next.textContent = idx + 1 < lyrics.length ? lyrics[idx + 1].text : '';
   }
 
   // ---- mode switching ----
@@ -102,6 +132,7 @@ window.LenovoDock = (function () {
     els['progress-elapsed'].textContent = fmt(pos);
     els['progress-fill'].style.width =
       (np.durationMs > 0 ? (pos / np.durationMs) * 100 : 0) + '%';
+    updateLyrics(pos);
   }
 
   function fmt(ms) {
@@ -112,5 +143,5 @@ window.LenovoDock = (function () {
   cacheEls();
   setInterval(tick, 1000); // local ticks; CSS bridges each with a 1s linear fill
 
-  return { onNowPlaying, onPlaybackGone };
+  return { onNowPlaying, onPlaybackGone, onLyrics };
 })();
