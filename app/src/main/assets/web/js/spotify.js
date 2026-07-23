@@ -11,6 +11,8 @@ window.LenovoDock = (function () {
   'use strict';
 
   const GRACE_MS = 30000; // keep Spotify mode this long after playback stops
+  const LYRIC_OFFSET_MS = 1000; // show lyrics this far ahead of actual playback position
+
 
   let np = null;          // latest snapshot
   let recvAt = 0;         // performance.now() when it arrived
@@ -132,7 +134,7 @@ window.LenovoDock = (function () {
     els['progress-elapsed'].textContent = fmt(pos);
     els['progress-fill'].style.width =
       (np.durationMs > 0 ? (pos / np.durationMs) * 100 : 0) + '%';
-    updateLyrics(pos);
+    updateLyrics(pos + LYRIC_OFFSET_MS);
   }
 
   function fmt(ms) {
