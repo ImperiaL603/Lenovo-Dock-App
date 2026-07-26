@@ -11,7 +11,7 @@ window.LenovoDock = (function () {
   'use strict';
 
   const GRACE_MS = 30000; // keep Spotify mode this long after playback stops
-  const LYRIC_OFFSET_MS = 1000; // show lyrics this far ahead of actual playback position
+  const LYRIC_OFFSET_MS = 500; // show lyrics this far ahead of actual playback position
 
 
   let np = null;          // latest snapshot
