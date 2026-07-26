@@ -50,13 +50,14 @@ body.mode-spotify .bg-video { opacity: 0; }
   justify-content: center;
   gap: 4vw;
   padding: 0 3vw;
+  transform: translateY(-6vh);
 }
 
 /* ---- player column ---- */
 .player-column {
   display: flex;
   flex-direction: column;
-  width: min(232vw, 450px);
+  width: min(26vw, 340px);
 }
 
 .album-art-box {
@@ -90,28 +91,46 @@ body.mode-spotify .bg-video { opacity: 0; }
 }
 #spotify-mode.has-art .album-art-placeholder { display: none; }
 
-.control-buttons {
+.spotify-controls {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  border-top: 1px solid var(--border-soft);
-  background: rgba(0, 0, 0, 0.55);
-}
-.ctrl-btn {
-  flex: 1;
-  padding: 0.65rem 0;
-  font-size: 1.5rem;
-  color: var(--fg-dimmer);
-}
-.ctrl-btn + .ctrl-btn { border-left: 1px solid var(--border-soft); }
+   left: 50%;
+   bottom: 2vh;
+   transform: translateX(-50%);
+   display: flex;
+   gap: 1.2rem;
+   z-index: 1;
+ }
+ .ctrl-btn {
+   width: 2.8rem;
+   height: 2.8rem;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 1.5rem;
+   font-weight: 300;
+   line-height: 1;
+   color: var(--fg);
+   background: rgba(0, 0, 0, 0.35);
+   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+   border-radius: 50%;
+   -webkit-tap-highlight-color: transparent;
+   outline: none;
+   transition: transform 0.25s var(--ease-spring), background 0.25s;
+ }
+ .ctrl-btn:active {
+   transform: scale(0.92);
+ }
 
 .progress-row {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  margin-top: 1.2rem;
+  position: absolute;
+  left: 50%;
+  bottom: 9vh;
+  transform: translateX(-50%);
+  width: min(80vw, 1200px);
+  z-index: 1;
 }
 .progress-time {
   font-size: 1.1rem;
@@ -134,38 +153,44 @@ body.mode-spotify .bg-video { opacity: 0; }
 
 .song-name {
   margin-top: 1.35rem;
-  font-size: 1.55rem;
+  font-size: 2.8rem;
   font-weight: 700;
+  color: var(--fg);
 }
 .artist-names {
   margin-top: 0.25rem;
-  font-size: 1.25rem;
+  font-size: 1.6rem;
   font-weight: 500;
-  color: var(--fg-dim);
+  color: var(--fg);
 }
 
 /* ---- lyrics column ---- */
 .lyrics-column {
   display: flex;
   flex-direction: column;
-  width: min(58vw, 860px);
+  width: min(66vw, 960px);
 }
 .playlist-name {
-  font-size: 1.25rem;
-  color: var(--fg-dim);
-  margin-bottom: 1.35rem;
+  font-size: 1.6rem;
+  color: var(--fg);
+  text-align: center;
   opacity: 0;
   transition: opacity 0.4s var(--ease-smooth);
+  position: absolute;
+   top: 12vh;
+   left: 0;
+   right: 0;
+   z-index: 1;
 }
 .playlist-name.visible { opacity: 1; }
 
 .lyrics-window {
-  height: 50vh;
+  height: 56vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.4rem;
+  gap: 1.8rem;
   overflow: hidden;
   text-align: center;
 }
@@ -176,21 +201,21 @@ body.mode-spotify .bg-video { opacity: 0; }
               color 0.5s var(--ease-smooth);
 }
 .lyric-line.prev {
-  font-size: 1.45rem;
-  color: var(--fg-dimmer);
+  font-size: 1.9rem;
+  color: var(--fg);
   transform: translateY(-14px);
   opacity: 0.5;
 }
 .lyric-line.current {
-  font-size: clamp(2.1rem, 3.5vw, 3.2rem);
+  font-size: clamp(2.6rem, 4.3vw, 3.9rem);
   font-weight: 600;
   color: var(--fg);
   opacity: 1;
   transform: translateY(0);
 }
 .lyric-line.next {
-  font-size: 1.45rem;
-  color: var(--fg-dimmer);
+  font-size: 1.9rem;
+  color: var(--fg);
   transform: translateY(14px);
   opacity: 0.4;
 }

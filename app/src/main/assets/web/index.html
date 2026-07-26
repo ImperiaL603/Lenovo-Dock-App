@@ -100,16 +100,6 @@
       <div class="album-art-box">
         <img id="album-art-img" alt="" />
         <div class="album-art-placeholder">Album Art</div>
-        <div class="control-buttons">
-          <button class="ctrl-btn" id="ctrl-prev" aria-label="Previous">&#9198;</button>
-          <button class="ctrl-btn" id="ctrl-playpause" aria-label="Play or pause">&#9199;</button>
-          <button class="ctrl-btn" id="ctrl-next" aria-label="Next">&#9197;</button>
-        </div>
-      </div>
-      <div class="progress-row">
-        <span class="progress-time" id="progress-elapsed">0:00</span>
-        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
-        <span class="progress-time" id="progress-total">0:00</span>
       </div>
       <div class="song-name" id="song-name"></div>
       <div class="artist-names" id="artist-names"></div>
@@ -129,6 +119,19 @@
     </div>
 
   </div>
+
+  <div class="progress-row" id="progress-row">
+     <span class="progress-time" id="progress-elapsed">0:00</span>
+     <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+     <span class="progress-time" id="progress-total">0:00</span>
+   </div>
+
+   <div class="spotify-controls" id="spotify-controls">
+     <button class="ctrl-btn" id="ctrl-prev" aria-label="Previous">&#9198;</button>
+     <button class="ctrl-btn" id="ctrl-playpause" aria-label="Play or pause">&#9199;</button>
+     <button class="ctrl-btn" id="ctrl-next" aria-label="Next">&#9197;</button>
+   </div>
+
 </section>
 
 <script src="js/wallpaper.js"></script>
