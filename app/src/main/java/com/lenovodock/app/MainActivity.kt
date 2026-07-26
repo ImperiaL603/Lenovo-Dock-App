@@ -33,9 +33,11 @@ class MainActivity : Activity() {
                     pageReady = true
                     inject(NowPlayingRepository.current)
                     injectLyrics(LyricsRepository.current)
+                    injectAlarms()
                 }
             }
             addJavascriptInterface(MediaBridge(this@MainActivity), MediaBridge.NAME)
+            addJavascriptInterface(AlarmBridge(this@MainActivity), AlarmBridge.NAME)
             loadUrl("file:///android_asset/web/index.html")
         }
         setContentView(webView)
@@ -43,6 +45,20 @@ class MainActivity : Activity() {
         NowPlayingRepository.setObserver { inject(it) }
         NowPlayingRepository.setObserver { inject(it) }
         LyricsRepository.setObserver { injectLyrics(it) }
+        TimerTicker.setObserver { injectTimerTick(it) }
+        TimerTicker.start(this)
+    }
+
+     private fun injectAlarms() {
+        if (!pageReady) return
+        val json = AlarmBridge(this).listAlarms()
+        webView.evaluateJavascript("window.LenovoDock&&LenovoDock.onAlarmsChanged($json)", null)
+    }
+ 
+    private fun injectTimerTick(timers: List<TimerItem>) {
+        if (!pageReady) return
+        val arr = org.json.JSONArray(); timers.forEach { arr.put(it.toJson()) }
+        webView.evaluateJavascript("window.LenovoDock&&LenovoDock.onTimerTick($arr)", null)
     }
 
     private fun injectLyrics(lines: List<LyricsRepository.Line>) {
@@ -79,6 +95,7 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         NowPlayingRepository.setObserver(null)
         LyricsRepository.setObserver(null)
+        TimerTicker.stop()
         webView.destroy()
         super.onDestroy()
     }

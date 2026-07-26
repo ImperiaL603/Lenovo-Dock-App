@@ -7,7 +7,7 @@
    blurred bg), song/artist, and the progress bar. Transport controls
    and lyrics are wired in later steps.
    ============================================================ */
-window.LenovoDock = (function () {
+window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   'use strict';
 
   const GRACE_MS = 30000; // keep Spotify mode this long after playback stops
@@ -146,4 +146,4 @@ window.LenovoDock = (function () {
   setInterval(tick, 1000); // local ticks; CSS bridges each with a 1s linear fill
 
   return { onNowPlaying, onPlaybackGone, onLyrics };
-})();
+})());
