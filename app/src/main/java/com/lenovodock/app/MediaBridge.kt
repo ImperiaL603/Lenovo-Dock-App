@@ -9,10 +9,22 @@ import java.io.File
  * JS bridge exposed to the WebView as `AndroidMedia`.
  *
  * Wallpaper videos live on device (app-private external storage), so the folder
- * is the single source of truth for which wallpapers exist. Real now-playing /
- * position / transport wiring lands in step 2 alongside the media-session listener.
+ * is the single source of truth for which wallpapers exist.
+ *
+ * Transport commands are forwarded to NowPlayingRepository, which holds the
+ * TransportControls of whichever Spotify session MediaListenerService has bound.
+ * Now-playing state travels the other way, injected straight into the page.
  */
 class MediaBridge(private val context: Context) {
+
+    @JavascriptInterface
+    fun togglePlayPause() = NowPlayingRepository.togglePlayPause()
+
+    @JavascriptInterface
+    fun skipToNext() = NowPlayingRepository.skipToNext()
+
+    @JavascriptInterface
+    fun skipToPrevious() = NowPlayingRepository.skipToPrevious()
 
     /** file:// base URL of the on-device wallpapers folder, with trailing slash. */
     @JavascriptInterface

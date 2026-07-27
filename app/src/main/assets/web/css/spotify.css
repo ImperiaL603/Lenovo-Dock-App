@@ -254,7 +254,9 @@ body.mode-spotify .bg-video { opacity: 0; }
   gap: 0.7rem;
   position: absolute;
   left: 50%;
-  bottom: 7vh;
+  /* Clears .spotify-controls below it: those sit at bottom 2vh and are now
+     3.6rem tall, so they reach ~9vh. */
+  bottom: 12vh;
   transform: translateX(-50%);
   width: min(80vw, 1200px);
   z-index: 1;
@@ -289,13 +291,13 @@ body.mode-spotify .bg-video { opacity: 0; }
   z-index: 1;
 }
 .ctrl-btn {
-  width: 2.8rem;
-  height: 2.8rem;
+  width: 3.6rem;
+  height: 3.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  font-weight: 300;
+  font-size: 1.9rem;
+  font-weight: 200;
   line-height: 1;
   color: var(--fg);
   background: rgba(0, 0, 0, 0.35);
@@ -307,4 +309,19 @@ body.mode-spotify .bg-video { opacity: 0; }
 }
 .ctrl-btn:active {
   transform: scale(0.92);
+}
+
+/* Pause bars, drawn rather than typed — see renderPlayState() in spotify.js for
+   why no codepoint works here. Tuned to sit at the same visual weight as the
+   ⏮ ⏭ glyphs: thin strokes with clear air between them, not a solid block. */
+.ctrl-btn.is-playing {
+  gap: 0.32rem;
+}
+.ctrl-btn.is-playing::before,
+.ctrl-btn.is-playing::after {
+  content: '';
+  width: 0.26rem;
+  height: 1.1rem;
+  border-radius: 1px;
+  background: var(--fg);
 }

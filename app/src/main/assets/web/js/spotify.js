@@ -18,6 +18,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   const GAP_MIN_MS = 7000;     // silence this long between two sung lines is an interlude
   const GAP_LEAD_MS = 3000;    // ...but let the preceding line hold this long first
   const GAP_MIN_SHOW_MS = 2500; // an interlude shorter than this isn't worth showing
+  const GLYPH_PLAY = '▶'; // U+25B6 — old enough that Roboto covers it, so it stays text
 
   let np = null;          // latest snapshot
   let recvAt = 0;         // performance.now() when it arrived
@@ -38,7 +39,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function cacheEls() {
     ['spotify-mode', 'spotify-bg', 'album-art-img', 'song-name', 'artist-names',
      'playlist-name', 'progress-elapsed', 'progress-total', 'progress-fill', 'bg-video',
-     'lyrics-window']
+     'lyrics-window', 'ctrl-prev', 'ctrl-playpause', 'ctrl-next']
       .forEach((id) => { els[id] = $(id); });
   }
 
@@ -66,7 +67,28 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
 
   function onPlaybackGone() {
     if (np) np.playing = false;
+    renderPlayState(false);
     if (spotifyActive) scheduleExit();
+  }
+
+  // Play is a glyph, pause is drawn by CSS: every pause codepoint either falls
+  // through to the colour-emoji font (U+23F8) or sits at a weight that swamps the
+  // ⏮ ⏭ beside it (U+275A). Two boxes match their weight exactly.
+  function renderPlayState(playing) {
+    const btn = els['ctrl-playpause'];
+    btn.classList.toggle('is-playing', playing);
+    btn.textContent = playing ? '' : GLYPH_PLAY;
+  }
+
+  // The glyph is deliberately NOT flipped on tap. Spotify pushes a new playback
+  // state within ~100ms, so letting that drive the icon means it can never
+  // disagree with what is actually happening — an optimistic flip would lie
+  // whenever a command is rejected (ad playing, session torn down).
+  function wireControls() {
+    if (typeof AndroidMedia === 'undefined') return; // page opened outside the native shell
+    els['ctrl-prev'].addEventListener('click', () => AndroidMedia.skipToPrevious());
+    els['ctrl-playpause'].addEventListener('click', () => AndroidMedia.togglePlayPause());
+    els['ctrl-next'].addEventListener('click', () => AndroidMedia.skipToNext());
   }
 
   // ---- lyrics ----
@@ -237,6 +259,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     els['playlist-name'].textContent = d.playlistName || '';
     els['playlist-name'].classList.toggle('visible', !!d.playlistName);
     els['progress-total'].textContent = fmt(d.durationMs);
+    renderPlayState(d.playing);
   }
 
   function interpolatedPos() {
@@ -283,6 +306,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   }
 
   cacheEls();
+  wireControls();
   window.addEventListener('resize', remeasure);
   if (document.fonts) document.fonts.ready.then(remeasure);
   setInterval(tick, 1000);              // CSS bridges each beat with a 1s linear fill

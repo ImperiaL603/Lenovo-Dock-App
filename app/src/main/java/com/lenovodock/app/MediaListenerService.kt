@@ -52,6 +52,7 @@ class MediaListenerService : NotificationListenerService() {
         if (next?.sessionToken == controller?.sessionToken) return
         controller?.unregisterCallback(callback)
         controller = next
+        NowPlayingRepository.setTransport(next?.transportControls)
         if (next == null) {
             NowPlayingRepository.update(null)
         } else {
@@ -63,6 +64,7 @@ class MediaListenerService : NotificationListenerService() {
     private fun detachAndClear() {
         controller?.unregisterCallback(callback)
         controller = null
+        NowPlayingRepository.setTransport(null)
         NowPlayingRepository.update(null)
     }
 
