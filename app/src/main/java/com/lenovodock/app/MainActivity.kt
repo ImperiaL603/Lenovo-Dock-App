@@ -3,8 +3,11 @@ package com.lenovodock.app
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
@@ -36,13 +39,20 @@ class MainActivity : Activity() {
                     injectAlarms()
                 }
             }
+            // Without this, console.log from the page never reaches logcat and only
+            // uncaught JS errors show up (as chromium [INFO:CONSOLE]).
+            webChromeClient = object : WebChromeClient() {
+                override fun onConsoleMessage(m: ConsoleMessage): Boolean {
+                    Log.d(TAG, "js: ${m.message()} (${m.sourceId()}:${m.lineNumber()})")
+                    return true
+                }
+            }
             addJavascriptInterface(MediaBridge(this@MainActivity), MediaBridge.NAME)
             addJavascriptInterface(AlarmBridge(this@MainActivity), AlarmBridge.NAME)
             loadUrl("file:///android_asset/web/index.html")
         }
         setContentView(webView)
 
-        NowPlayingRepository.setObserver { inject(it) }
         NowPlayingRepository.setObserver { inject(it) }
         LyricsRepository.setObserver { injectLyrics(it) }
         TimerTicker.setObserver { injectTimerTick(it) }
@@ -98,5 +108,9 @@ class MainActivity : Activity() {
         TimerTicker.stop()
         webView.destroy()
         super.onDestroy()
+    }
+
+    companion object {
+        private const val TAG = "LenovoDock" // shared with MediaListenerService / LyricsRepository
     }
 }

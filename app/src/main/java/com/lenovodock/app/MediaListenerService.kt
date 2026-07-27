@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.service.notification.NotificationListenerService
+import android.util.Log
 
 /**
  * Reads Spotify's media session and pushes now-playing snapshots to
@@ -22,6 +23,7 @@ class MediaListenerService : NotificationListenerService() {
     private val handler = Handler(Looper.getMainLooper())
     private var sessionManager: MediaSessionManager? = null
     private var controller: MediaController? = null
+    private var lastLogged: String? = null
 
     private val sessionsListener =
         MediaSessionManager.OnActiveSessionsChangedListener { bindSpotify(it ?: emptyList()) }
@@ -65,9 +67,27 @@ class MediaListenerService : NotificationListenerService() {
     }
 
     private fun publish() {
-    val np = controller?.let(::snapshot)
-    NowPlayingRepository.update(np)
-    np?.let { LyricsRepository.onTrack(it.title, it.artist, it.album, it.durationMs) }
+        val np = controller?.let(::snapshot)
+        NowPlayingRepository.update(np)
+        logSnapshot(np)
+        np?.let { LyricsRepository.onTrack(it.title, it.artist, it.album, it.durationMs) }
+    }
+
+    /**
+     * Logged only when a field that matters changes — Spotify's periodic position
+     * updates would otherwise drown the log. `duration=0` or a `playing=false` that
+     * never flips back are what freeze the lyrics window mid-song, so both are here.
+     */
+    private fun logSnapshot(np: NowPlaying?) {
+        val signature = np?.let { "${it.title}|${it.playing}|${it.durationMs}" } ?: "gone"
+        if (signature == lastLogged) return
+        lastLogged = signature
+        if (np == null) {
+            Log.d(TAG, "playback: session gone")
+        } else {
+            Log.d(TAG, "playback: playing=${np.playing} pos=${np.positionMs}ms " +
+                "duration=${np.durationMs}ms speed=${np.speed} art=${np.art != null}")
+        }
     }
 
     private fun snapshot(c: MediaController): NowPlaying? {
@@ -91,6 +111,7 @@ class MediaListenerService : NotificationListenerService() {
     }
 
     companion object {
+        private const val TAG = "LenovoDock" // same tag as LyricsRepository, one logcat filter
         private const val SPOTIFY_PKG = "com.spotify.music"
         private const val SPOTIFY_ART_HTTPS_URI = "com.spotify.music.extra.ART_HTTPS_URI"
         private const val SPOTIFY_CONTEXT_URI = "com.spotify.music.extra.CONTEXT_URI"

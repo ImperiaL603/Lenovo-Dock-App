@@ -91,69 +91,9 @@ body.mode-spotify .bg-video { opacity: 0; }
 }
 #spotify-mode.has-art .album-art-placeholder { display: none; }
 
-.spotify-controls {
-  position: absolute;
-   left: 50%;
-   bottom: 2vh;
-   transform: translateX(-50%);
-   display: flex;
-   gap: 1.2rem;
-   z-index: 1;
- }
- .ctrl-btn {
-   width: 2.8rem;
-   height: 2.8rem;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   font-size: 1.5rem;
-   font-weight: 300;
-   line-height: 1;
-   color: var(--fg);
-   background: rgba(0, 0, 0, 0.35);
-   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
-   border-radius: 50%;
-   -webkit-tap-highlight-color: transparent;
-   outline: none;
-   transition: transform 0.25s var(--ease-spring), background 0.25s;
- }
- .ctrl-btn:active {
-   transform: scale(0.92);
- }
-
-.progress-row {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  position: absolute;
-  left: 50%;
-  bottom: 9vh;
-  transform: translateX(-50%);
-  width: min(80vw, 1200px);
-  z-index: 1;
-}
-.progress-time {
-  font-size: 1.1rem;
-  color: var(--fg-dim);
-  font-variant-numeric: tabular-nums;
-}
-.progress-track {
-  flex: 1;
-  height: 4px;
-  background: var(--fg-dimmer);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.progress-fill {
-  width: 0;
-  height: 100%;
-  background: var(--fg);
-  transition: width 1s linear;
-}
-
 .song-name {
   margin-top: 1.35rem;
-  font-size: 2.8rem;
+  font-size: 2rem;
   font-weight: 700;
   color: var(--fg);
 }
@@ -170,6 +110,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   flex-direction: column;
   width: min(66vw, 960px);
 }
+
 .playlist-name {
   font-size: 1.6rem;
   color: var(--fg);
@@ -177,46 +118,107 @@ body.mode-spotify .bg-video { opacity: 0; }
   opacity: 0;
   transition: opacity 0.4s var(--ease-smooth);
   position: absolute;
-   top: 12vh;
-   left: 0;
-   right: 0;
-   z-index: 1;
+  top: 12vh;
+  left: 0;
+  right: 0;
+  z-index: 1;
 }
 .playlist-name.visible { opacity: 1; }
 
+/* Every lyric is rendered into .lyrics-track, which is the only thing that
+   moves: JS translates it so the active line sits at the window's centre.
+   Lines are in normal flow, so a wrapped lyric pushes its neighbours apart
+   instead of overlapping them. Emphasis falls off with --d, the line's
+   distance from the active one (set per line by JS, clamped to 3). */
 .lyrics-window {
+  position: relative;
   height: 56vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.8rem;
   overflow: hidden;
-  text-align: center;
+  -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%, #000 20%, #000 80%, transparent 100%);
+          mask-image: linear-gradient(to bottom,
+      transparent 0%, #000 20%, #000 80%, transparent 100%);
 }
+
+.lyrics-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 0 5%;
+  will-change: transform;
+  transition: transform 0.55s var(--ease-smooth);
+}
+/* Set while JS lands a seek or a re-measure, so the jump doesn't animate. */
+.lyrics-track.no-anim { transition: none; }
+
 .lyric-line {
-  transition: transform 0.6s var(--ease-spring),
-              opacity 0.5s var(--ease-smooth),
-              font-size 0.5s var(--ease-smooth),
-              color 0.5s var(--ease-smooth);
-}
-.lyric-line.prev {
-  font-size: 1.9rem;
-  color: var(--fg);
-  transform: translateY(-14px);
-  opacity: 0.5;
-}
-.lyric-line.current {
-  font-size: clamp(2.6rem, 4.3vw, 3.9rem);
+  --d: 0;
+  margin: 0.55rem 0;
+  text-align: center;
+  font-size: clamp(1.9rem, 3vw, 2.9rem);
   font-weight: 600;
+  line-height: 1.24;
   color: var(--fg);
-  opacity: 1;
-  transform: translateY(0);
+  opacity: calc(1 - var(--d) * 0.26);
+  /* scale(), not font-size — font-size would reflow every frame and shift the
+     very line offsets the scroll position is measured from. */
+  transform: scale(1);
+  filter: blur(calc(var(--d) * 0.9px));
+  transition: opacity 0.45s var(--ease-smooth),
+              transform 0.45s var(--ease-spring),
+              filter 0.45s var(--ease-smooth),
+              text-shadow 0.45s var(--ease-smooth);
 }
-.lyric-line.next {
-  font-size: 1.9rem;
+
+.lyric-line.is-active {
+  opacity: 1;
+  transform: scale(1.08);
+  filter: blur(0);
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.45), 0 0 55px rgba(255, 255, 255, 0.18);
+}
+
+/* Past ±3 lines nothing is legible anyway; dropping the filter keeps the number
+   of blurred layers bounded on the P22 no matter how long the song is. */
+.lyric-line.is-far {
+  opacity: 0;
+  filter: none;
+}
+
+/* Interlude marker. It is a .lyric-line like any other — same scroll, same --d
+   falloff — so it needs no special handling anywhere. --p (0..1, set by JS) is
+   how far through the gap we are; each dot lights as --p crosses its third. */
+.lyric-gap {
+  --p: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+}
+.lyric-gap i {
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+  background: var(--fg);
+  opacity: calc(0.22 + 0.78 * clamp(0, (var(--p) * 3) - var(--i), 1));
+  transform: scale(calc(0.78 + 0.22 * clamp(0, (var(--p) * 3) - var(--i), 1)));
+  transition: opacity 0.3s var(--ease-smooth), transform 0.3s var(--ease-smooth);
+}
+.lyric-line.is-active.lyric-gap i {
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.4);
+}
+
+.lyrics-message {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: clamp(1.9rem, 3vw, 2.9rem);
+  font-weight: 500;
   color: var(--fg);
-  transform: translateY(14px);
   opacity: 0.4;
 }
 
@@ -243,4 +245,66 @@ body.mode-spotify .bg-video { opacity: 0; }
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 40vw;
+}
+
+/* ---- progress bar (centered, bottom of screen) ---- */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  position: absolute;
+  left: 50%;
+  bottom: 7vh;
+  transform: translateX(-50%);
+  width: min(80vw, 1200px);
+  z-index: 1;
+}
+.progress-time {
+  font-size: 1.1rem;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+.progress-track {
+  flex: 1;
+  height: 4px;
+  background: var(--fg-dimmer);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  width: 0;
+  height: 100%;
+  background: var(--fg);
+  transition: width 1s linear;
+}
+
+/* ---- transport controls (below progress bar, styled like settings/add buttons) ---- */
+.spotify-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 2vh;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1.2rem;
+  z-index: 1;
+}
+.ctrl-btn {
+  width: 2.8rem;
+  height: 2.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--fg);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  transition: transform 0.25s var(--ease-spring), background 0.25s;
+}
+.ctrl-btn:active {
+  transform: scale(0.92);
 }

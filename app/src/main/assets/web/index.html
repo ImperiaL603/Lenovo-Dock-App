@@ -36,23 +36,23 @@
     <div class="panel" id="panel">
       <div class="panel-section">
         <div class="panel-section-header">
-              <div class="panel-title">Alarms</div>
-              <button class="panel-add-toggle" id="toggle-alarm-form">+ New</button>
-            </div>
-            <div class="inline-form" id="new-alarm-form">
-              <input type="time" id="new-alarm-time" class="form-input" />
-              <input type="text" id="new-alarm-label" class="form-input" placeholder="Label (optional)" />
-              <div class="day-chip-row">
-                <button class="day-chip" data-day="1">Sun</button>
-                <button class="day-chip" data-day="2">Mon</button>
-                <button class="day-chip" data-day="3">Tue</button>
-                <button class="day-chip" data-day="4">Wed</button>
-                <button class="day-chip" data-day="5">Thu</button>
-                <button class="day-chip" data-day="6">Fri</button>
-                <button class="day-chip" data-day="7">Sat</button>
-              </div>
-              <button class="form-save-btn" id="save-alarm-btn">Save Alarm</button>
-            </div>
+          <div class="panel-title">Alarms</div>
+          <button class="panel-add-toggle" id="toggle-alarm-form">+ New</button>
+        </div>
+        <div class="inline-form" id="new-alarm-form">
+          <input type="time" id="new-alarm-time" class="form-input" />
+          <input type="text" id="new-alarm-label" class="form-input" placeholder="Label (optional)" />
+          <div class="day-chip-row">
+            <button class="day-chip" data-day="1">Sun</button>
+            <button class="day-chip" data-day="2">Mon</button>
+            <button class="day-chip" data-day="3">Tue</button>
+            <button class="day-chip" data-day="4">Wed</button>
+            <button class="day-chip" data-day="5">Thu</button>
+            <button class="day-chip" data-day="6">Fri</button>
+            <button class="day-chip" data-day="7">Sat</button>
+          </div>
+          <button class="form-save-btn" id="save-alarm-btn">Save Alarm</button>
+        </div>
         <div class="panel-list" id="alarms-list">
           <div class="placeholder-row">No alarms set</div>
         </div>
@@ -60,14 +60,14 @@
 
       <div class="panel-section">
         <div class="panel-section-header">
-              <div class="panel-title">Timers</div>
-              <button class="panel-add-toggle" id="toggle-timer-form">+ New</button>
-            </div>
-            <div class="inline-form" id="new-timer-form">
-              <input type="number" id="new-timer-minutes" class="form-input" placeholder="Minutes" min="1" />
-              <input type="text" id="new-timer-label" class="form-input" placeholder="Label (optional)" />
-              <button class="form-save-btn" id="save-timer-btn">Start Timer</button>
-            </div>
+          <div class="panel-title">Timers</div>
+          <button class="panel-add-toggle" id="toggle-timer-form">+ New</button>
+        </div>
+        <div class="inline-form" id="new-timer-form">
+          <input type="number" id="new-timer-minutes" class="form-input" placeholder="Minutes" min="1" />
+          <input type="text" id="new-timer-label" class="form-input" placeholder="Label (optional)" />
+          <button class="form-save-btn" id="save-timer-btn">Start Timer</button>
+        </div>
         <div class="panel-list" id="timers-list">
           <div class="placeholder-row">No timers running</div>
         </div>
@@ -107,11 +107,7 @@
 
     <div class="lyrics-column">
       <div class="playlist-name" id="playlist-name"></div>
-      <div class="lyrics-window" id="lyrics-window">
-        <div class="lyric-line prev"></div>
-        <div class="lyric-line current"></div>
-        <div class="lyric-line next"></div>
-      </div>
+      <div class="lyrics-window" id="lyrics-window"></div>
       <div class="up-next" id="up-next">
         <span class="up-next-label">Up Next</span>
         <span class="up-next-track" id="up-next-track"></span>
@@ -126,11 +122,11 @@
      <span class="progress-time" id="progress-total">0:00</span>
    </div>
 
-   <div class="spotify-controls" id="spotify-controls">
-     <button class="ctrl-btn" id="ctrl-prev" aria-label="Previous">&#9198;</button>
-     <button class="ctrl-btn" id="ctrl-playpause" aria-label="Play or pause">&#9199;</button>
-     <button class="ctrl-btn" id="ctrl-next" aria-label="Next">&#9197;</button>
-   </div>
+  <div class="spotify-controls" id="spotify-controls">
+    <button class="ctrl-btn" id="ctrl-prev" aria-label="Previous">&#9198;</button>
+    <button class="ctrl-btn" id="ctrl-playpause" aria-label="Play or pause">&#9199;</button>
+    <button class="ctrl-btn" id="ctrl-next" aria-label="Next">&#9197;</button>
+  </div>
 
 </section>
 
