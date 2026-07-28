@@ -1,0 +1,19 @@
+/* ============================================================
+   IDLE — the floating controls dim once idle.js has seen no touches.
+   Its own file rather than style.css, which is near its size limit.
+
+   The fade-in/out duration is NOT declared here. `transition` is a single
+   property, so a declaration in this file would replace the transform/colour
+   transitions those buttons already set and kill their press animation — the
+   same trap the mode transforms hit. `opacity` is appended to each button's own
+   transition instead, in style.css and settings.css.
+
+   :not(.settings-open) is what keeps the gear lit while its panel is open, so
+   the control can't fade out from under someone reading a section.
+   ============================================================ */
+
+body.idle:not(.settings-open) .settings-btn,
+body.idle:not(.settings-open) .sleep-btn,
+body.idle:not(.settings-open) .mode-btn {
+  opacity: 0.15;
+}

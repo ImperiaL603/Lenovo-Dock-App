@@ -16,7 +16,8 @@
   font-size: 1.5rem;
   font-weight: 300;
   line-height: 1;
-  transition: transform 0.25s var(--ease-spring), background 0.25s;
+  transition: transform 0.25s var(--ease-spring), background 0.25s,
+    opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
   z-index: 5;
   background: rgba(0, 0, 0, 0.35);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);

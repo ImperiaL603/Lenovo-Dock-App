@@ -169,7 +169,8 @@ button {
   border: 1px solid var(--border-soft);
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
-  transition: transform 0.25s var(--ease-spring), color 0.25s;
+  transition: transform 0.25s var(--ease-spring), color 0.25s,
+    opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
   z-index: 6;
 }
 
@@ -199,7 +200,8 @@ button {
   border: 1px solid var(--border-soft);
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
-  transition: transform 0.25s var(--ease-spring), color 0.25s, border-color 0.25s;
+  transition: transform 0.25s var(--ease-spring), color 0.25s, border-color 0.25s,
+    opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
   z-index: 6;
 }
 
