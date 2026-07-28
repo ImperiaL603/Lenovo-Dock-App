@@ -180,3 +180,57 @@ const settingsBtn = document.getElementById('settings-btn');
 settingsBtn.addEventListener('click', () => {
   document.body.classList.toggle('settings-open');
 });
+
+// Section collapse. Each .settings-section-label toggles the element right after
+// it, so adding a section needs no JS. aria-expanded is the state the chevron
+// rotates off, so the attribute and the visible arrow can't drift apart.
+document.querySelectorAll('.settings-section-label').forEach((label) => {
+  label.addEventListener('click', () => {
+    const open = label.nextElementSibling.classList.toggle('open');
+    label.setAttribute('aria-expanded', String(open));
+  });
+});
+
+// ---------- Appearance sizes ----------
+// Scales whole modes: --clock-scale and --spotify-scale are read by transforms
+// on .clock-block, .spotify-layout, .progress-row and .spotify-controls.
+const SCALES = { small: 0.9, medium: 1, large: 1.1 };
+const DEFAULT_SIZE = 'medium';
+
+function applySize(mode, size) {
+  document.documentElement.style.setProperty(`--${mode}-scale`, SCALES[size]);
+  localStorage.setItem(`size-${mode}`, size);
+  document.querySelectorAll(`.option-row[data-scale="${mode}"] .option-chip`)
+    .forEach((chip) => chip.classList.toggle('selected', chip.dataset.size === size));
+}
+
+document.querySelectorAll('.option-row[data-scale]').forEach((row) => {
+  const mode = row.dataset.scale;
+  const saved = localStorage.getItem(`size-${mode}`);
+  applySize(mode, SCALES[saved] ? saved : DEFAULT_SIZE);
+  row.addEventListener('click', (e) => {
+    const size = e.target.dataset.size;
+    if (size) applySize(mode, size);
+  });
+});
+
+// ---------- Theme ----------
+// The id is the whole state: themes.css keys off :root[data-theme], so setting
+// the attribute repaints everything that derives from --fg-rgb / --accent-rgb.
+const themeRow = document.getElementById('theme-row');
+const DEFAULT_THEME = 'mono';
+
+function applyTheme(id) {
+  document.documentElement.setAttribute('data-theme', id);
+  localStorage.setItem('theme', id);
+  themeRow.querySelectorAll('.option-chip')
+    .forEach((chip) => chip.classList.toggle('selected', chip.dataset.theme === id));
+}
+
+const savedTheme = localStorage.getItem('theme');
+applyTheme(themeRow.querySelector(`[data-theme="${savedTheme}"]`) ? savedTheme : DEFAULT_THEME);
+
+themeRow.addEventListener('click', (e) => {
+  const id = e.target.dataset.theme;
+  if (id) applyTheme(id);
+});

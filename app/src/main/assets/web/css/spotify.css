@@ -14,8 +14,8 @@
 body.mode-spotify #spotify-mode { display: block; }
 
 /* Clock UI + wallpaper video give way to Spotify mode. */
+/* The gear stays: settings are reachable in both modes. */
 body.mode-spotify #clock-mode,
-body.mode-spotify .settings-btn,
 body.mode-spotify .add-btn { display: none; }
 body.mode-spotify .bg-video { opacity: 0; }
 
@@ -50,7 +50,9 @@ body.mode-spotify .bg-video { opacity: 0; }
   justify-content: center;
   gap: 4vw;
   padding: 0 3vw;
-  transform: translateY(-6vh);
+  /* The progress row and controls are siblings of this element, not children,
+     so all three carry --spotify-scale to grow and shrink as one. */
+  transform: translateY(-6vh) scale(var(--spotify-scale));
 }
 
 /* ---- player column ---- */
@@ -175,7 +177,10 @@ body.mode-spotify .bg-video { opacity: 0; }
   opacity: 1;
   transform: scale(1.08);
   filter: blur(0);
-  text-shadow: 0 0 22px rgba(255, 255, 255, 0.45), 0 0 55px rgba(255, 255, 255, 0.18);
+  /* The theme's accent, not the text colour — this is the one place a theme
+     shows as colour rather than as a tint. */
+  text-shadow: 0 0 22px rgb(var(--accent-rgb) / 0.45),
+               0 0 55px rgb(var(--accent-rgb) / 0.18);
 }
 
 /* Past ±3 lines nothing is legible anyway; dropping the filter keeps the number
@@ -206,7 +211,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   transition: opacity 0.3s var(--ease-smooth), transform 0.3s var(--ease-smooth);
 }
 .lyric-line.is-active.lyric-gap i {
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 14px rgb(var(--accent-rgb) / 0.4); /* matches the active line's glow */
 }
 
 .lyrics-message {
@@ -257,7 +262,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   /* Clears .spotify-controls below it: those sit at bottom 2vh and are now
      3.6rem tall, so they reach ~9vh. */
   bottom: 12vh;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(var(--spotify-scale));
   width: min(80vw, 1200px);
   z-index: 1;
 }
@@ -285,7 +290,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   position: absolute;
   left: 50%;
   bottom: 2vh;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(var(--spotify-scale));
   display: flex;
   gap: 1.2rem;
   z-index: 1;

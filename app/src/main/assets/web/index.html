@@ -11,6 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/themes.css" />
+<link rel="stylesheet" href="css/settings.css" />
 <link rel="stylesheet" href="css/spotify.css" />
 </head>
 <body>
@@ -83,13 +85,51 @@
 <!-- Settings panel: hidden until gear icon is tapped -->
 <div class="settings-panel" id="settings-panel">
   <div class="settings-panel-title">Settings</div>
-  <div class="settings-section-label">Wallpaper</div>
-  <div class="wallpaper-grid" id="wallpaper-grid"></div>
+  <button class="settings-section-label" aria-expanded="false">
+    Wallpaper
+    <span class="section-chevron">&#9662;</span>
+  </button>
+  <div class="wallpaper-grid collapsible" id="wallpaper-grid"></div>
+
+  <button class="settings-section-label" aria-expanded="false">
+    Appearance
+    <span class="section-chevron">&#9662;</span>
+  </button>
+  <div class="collapsible">
+    <div class="settings-subsection-label">Clock</div>
+    <div class="option-row" data-scale="clock">
+      <button class="option-chip" data-size="small">Small</button>
+      <button class="option-chip" data-size="medium">Medium</button>
+      <button class="option-chip" data-size="large">Large</button>
+    </div>
+    <div class="settings-subsection-label">Spotify</div>
+    <div class="option-row" data-scale="spotify">
+      <button class="option-chip" data-size="small">Small</button>
+      <button class="option-chip" data-size="medium">Medium</button>
+      <button class="option-chip" data-size="large">Large</button>
+    </div>
+    <div class="settings-subsection-label">Theme</div>
+    <div class="option-row" id="theme-row">
+      <button class="option-chip" data-theme="mono">Mono</button>
+      <button class="option-chip" data-theme="forest">Evergreen</button>
+      <button class="option-chip" data-theme="ocean">Tide</button>
+      <button class="option-chip" data-theme="sunset">Copper</button>
+      <button class="option-chip" data-theme="berry">Plum</button>
+      <button class="option-chip" data-theme="rose">Bloom</button>
+      <button class="option-chip" data-theme="slate">Graphite</button>
+      <button class="option-chip" data-theme="midnight">Indigo</button>
+      <button class="option-chip" data-theme="ember">Rust</button>
+    </div>
+  </div>
 </div>
 
 <button id="settings-btn" class="settings-btn" aria-label="Open settings">
   <span>&#9881;</span>
 </button>
+
+<!-- Testing aid: jump between Clock and Spotify without waiting on playback.
+     Lives outside both sections so it stays visible in either mode. -->
+<button id="mode-btn" class="mode-btn">Spotify</button>
 
 <!-- ===================== SPOTIFY ===================== -->
 <section id="spotify-mode">

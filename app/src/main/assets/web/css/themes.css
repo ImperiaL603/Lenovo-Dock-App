@@ -1,0 +1,78 @@
+/* ============================================================
+   THEMES — ported from the cove app's COLOR_PRESETS (constants/themes.ts).
+
+   Only the DARK variant of each preset is used: this dock is light type over
+   video wallpaper and blurred album art, and the light variants' near-black
+   text would disappear against both.
+
+   Two values per theme:
+     --fg-rgb      all type derives from this, at the alphas in style.css
+     --accent-rgb  cove's dark.accent, raw — the active lyric glow and dots
+
+   --fg-rgb is NOT cove's dark.text. Those are near-neutral by design (Evergreen's
+   is six units off grey) and were invisible at dock distance over a wallpaper.
+   It is instead 60% dark.text + 40% dark.accent, per channel, precomputed here —
+   color-mix() would need Chromium 111 and this WebView is only known to be 88+.
+   Each block records its source values so the ratio can be redone.
+
+   The dim / border tokens are NOT taken from cove's textSub / textMuted /
+   border: those are opaque colours meant for a known dark surface, whereas ours
+   are translucent so they keep adapting to whatever is behind them.
+   ============================================================ */
+
+/* Mono — today's look exactly. Without it there is no way back to plain white,
+   since every cove preset is tinted. Mixing white with white is still white. */
+:root[data-theme="mono"] {
+  --fg-rgb: 255 255 255;
+  --accent-rgb: 255 255 255;
+}
+
+/* Evergreen — text #E5EBE7, accent #7BB394 */
+:root[data-theme="forest"] {
+  --fg-rgb: 187 213 198;
+  --accent-rgb: 123 179 148;
+}
+
+/* Tide — text #E2E8EE, accent #7BA4C9 */
+:root[data-theme="ocean"] {
+  --fg-rgb: 185 205 223;
+  --accent-rgb: 123 164 201;
+}
+
+/* Copper — text #EFE2D2, accent #C17A40 */
+:root[data-theme="sunset"] {
+  --fg-rgb: 221 184 152;
+  --accent-rgb: 193 122 64;
+}
+
+/* Plum — text #E8DCEF, accent #A684B6 */
+:root[data-theme="berry"] {
+  --fg-rgb: 206 185 216;
+  --accent-rgb: 166 132 182;
+}
+
+/* Bloom — text #EDDCE2, accent #C77891 */
+:root[data-theme="rose"] {
+  --fg-rgb: 222 180 194;
+  --accent-rgb: 199 120 145;
+}
+
+/* Graphite — text #E5E8EE, accent #B7BFC7.
+   Stays near-neutral even after mixing: this preset's accent is itself grey,
+   so it reads as a cool off-white rather than a colour. That is the theme. */
+:root[data-theme="slate"] {
+  --fg-rgb: 211 216 222;
+  --accent-rgb: 183 191 199;
+}
+
+/* Indigo — text #E2E5EF, accent #7E8FB5 */
+:root[data-theme="midnight"] {
+  --fg-rgb: 186 195 216;
+  --accent-rgb: 126 143 181;
+}
+
+/* Rust — text #EEDBD3, accent #C9604F */
+:root[data-theme="ember"] {
+  --fg-rgb: 223 170 158;
+  --accent-rgb: 201 96 79;
+}

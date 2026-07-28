@@ -24,6 +24,8 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   let recvAt = 0;         // performance.now() when it arrived
   let spotifyActive = false;
   let graceTimer = null;
+  let manualOverride = false; // a hand-picked mode, held until playback changes
+  let lastPlaying = null;     // previous snapshot's playing flag, to spot that change
   let lastArt = null;
   let lastTrackKey = null;
 
@@ -39,7 +41,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function cacheEls() {
     ['spotify-mode', 'spotify-bg', 'album-art-img', 'song-name', 'artist-names',
      'playlist-name', 'progress-elapsed', 'progress-total', 'progress-fill', 'bg-video',
-     'lyrics-window', 'ctrl-prev', 'ctrl-playpause', 'ctrl-next']
+     'lyrics-window', 'ctrl-prev', 'ctrl-playpause', 'ctrl-next', 'mode-btn']
       .forEach((id) => { els[id] = $(id); });
   }
 
@@ -55,11 +57,18 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
       buildLyrics([]);
     }
     renderMeta(data);
-    if (data.playing) {
-      cancelExit();
-      if (!spotifyActive) enterSpotify();
-    } else if (spotifyActive) {
-      scheduleExit();
+    // A hand-picked mode holds until playback actually starts or stops. Spotify
+    // pushes state updates throughout a track, and without this the next one
+    // would silently undo the choice.
+    if (lastPlaying !== null && data.playing !== lastPlaying) manualOverride = false;
+    lastPlaying = data.playing;
+    if (!manualOverride) {
+      if (data.playing) {
+        cancelExit();
+        if (!spotifyActive) enterSpotify();
+      } else if (spotifyActive) {
+        scheduleExit();
+      }
     }
     tick();
     lyricTick();
@@ -68,7 +77,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function onPlaybackGone() {
     if (np) np.playing = false;
     renderPlayState(false);
-    if (spotifyActive) scheduleExit();
+    if (spotifyActive && !manualOverride) scheduleExit();
   }
 
   // Play is a glyph, pause is drawn by CSS: every pause codepoint either falls
@@ -213,9 +222,22 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   }
 
   // ---- mode switching ----
+  // The button always names where it will take you, and is rendered from
+  // spotifyActive rather than toggled, so an automatic switch relabels it too.
+  function renderModeButton() {
+    els['mode-btn'].textContent = spotifyActive ? 'Clock' : 'Spotify';
+  }
+
+  function toggleMode() {
+    manualOverride = true;
+    cancelExit();
+    if (spotifyActive) exitToClock(); else enterSpotify();
+  }
+
   function enterSpotify() {
     spotifyActive = true;
     document.body.classList.add('mode-spotify');
+    renderModeButton();
     if (els['bg-video']) els['bg-video'].pause();
     // #spotify-mode is display:none until now, so anything measured before this
     // point measured zero. Re-measure and re-seat the active line.
@@ -226,6 +248,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function exitToClock() {
     spotifyActive = false;
     document.body.classList.remove('mode-spotify');
+    renderModeButton();
     if (els['bg-video']) els['bg-video'].play().catch(() => {});
   }
 
@@ -307,6 +330,10 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
 
   cacheEls();
   wireControls();
+  // Wired separately from the transport buttons: this one is pure UI and works
+  // with or without the native bridge.
+  els['mode-btn'].addEventListener('click', toggleMode);
+  renderModeButton();
   window.addEventListener('resize', remeasure);
   if (document.fonts) document.fonts.ready.then(remeasure);
   setInterval(tick, 1000);              // CSS bridges each beat with a 1s linear fill
