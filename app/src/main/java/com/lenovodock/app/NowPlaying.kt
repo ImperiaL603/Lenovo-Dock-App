@@ -17,6 +17,7 @@ data class NowPlaying(
     val speed: Float,
     val art: String?,          // https album-art URL, or null when the session has no art
     val playlistName: String?, // set only when playing from a playlist
+    val isAd: Boolean,         // Spotify serves ads through the same session as tracks
 ) {
     private val hasArt: Boolean get() = art != null
 

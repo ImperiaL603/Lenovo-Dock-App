@@ -150,6 +150,18 @@ body.settings-open .settings-panel {
   margin-bottom: 0;
 }
 
+/* Free-text alternative to a chip row. Reuses .form-input / .form-save-btn
+   from the timer form so the two ways of entering a number look the same. */
+.custom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.custom-row .form-input {
+  width: 9rem;
+}
+
 .wallpaper-chip,
 .option-chip {
   padding: 0.5rem 0.9rem;

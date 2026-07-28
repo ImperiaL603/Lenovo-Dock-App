@@ -45,22 +45,33 @@ object LyricsRepository {
     }
 
     /** Call whenever a NowPlaying snapshot arrives. No-ops if the track hasn't changed. */
-    fun onTrack(title: String, artist: String, album: String, durationMs: Long) {
+    fun onTrack(np: NowPlaying) {
+        val title = np.title
+        val artist = np.artist
+        val album = np.album
         if (title.isBlank() || artist.isBlank()) {
             Log.d(TAG, "skip: blank title/artist (title='$title' artist='$artist')")
             return
         }
         val key = "$artist|$title|$album"
         if (key == lastKey) return
+        // Set before the ad check on purpose: an ad still has to claim lastKey, or
+        // the song resuming afterwards would match the pre-ad key, be treated as
+        // unchanged, and never get its lyrics re-delivered.
         lastKey = key
+        if (np.isAd) {
+            Log.d(TAG, "ad break — no lookup ('$title' / '$artist')")
+            deliver(emptyList())
+            return
+        }
         // The exact strings Spotify gave us. Mismatches against lrclib's own
         // spelling start here, so this is the first line to read on a miss.
-        Log.d(TAG, "track: title='$title' artist='$artist' album='$album' duration=${durationMs / 1000}s")
+        Log.d(TAG, "track: title='$title' artist='$artist' album='$album' duration=${np.durationMs / 1000}s")
 
         cache[key]?.let { Log.d(TAG, "cache hit: ${it.size} lines"); deliver(it); return }
 
         io.execute {
-            val lines = fetch(title, artist, album, durationMs / 1000)
+            val lines = fetch(title, artist, album, np.durationMs / 1000)
             // Only successes are cached. An empty result means "a timeout, a 5xx or
             // no timed record" — caching that would keep the track blank for the rest
             // of the process, so a later play gets another attempt instead.

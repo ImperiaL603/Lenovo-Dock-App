@@ -27,6 +27,7 @@
         </activity>
 
         <receiver android:name=".RingReceiver" android:exported="false" />
+        <receiver android:name=".SleepReceiver" android:exported="false" />
         <receiver android:name=".DismissReceiver" android:exported="false" />
         <receiver android:name=".BootReceiver" android:exported="false">
             <intent-filter>

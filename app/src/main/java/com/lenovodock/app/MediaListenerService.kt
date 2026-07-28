@@ -72,7 +72,7 @@ class MediaListenerService : NotificationListenerService() {
         val np = controller?.let(::snapshot)
         NowPlayingRepository.update(np)
         logSnapshot(np)
-        np?.let { LyricsRepository.onTrack(it.title, it.artist, it.album, it.durationMs) }
+        np?.let(LyricsRepository::onTrack)
     }
 
     /**
@@ -88,7 +88,7 @@ class MediaListenerService : NotificationListenerService() {
             Log.d(TAG, "playback: session gone")
         } else {
             Log.d(TAG, "playback: playing=${np.playing} pos=${np.positionMs}ms " +
-                "duration=${np.durationMs}ms speed=${np.speed} art=${np.art != null}")
+                "duration=${np.durationMs}ms speed=${np.speed} art=${np.art != null} ad=${np.isAd}")
         }
     }
 
@@ -109,12 +109,40 @@ class MediaListenerService : NotificationListenerService() {
         val art = md.getString(SPOTIFY_ART_HTTPS_URI)?.takeIf { it.isNotBlank() }
         val playlist = if (md.getString(SPOTIFY_CONTEXT_URI).orEmpty().contains(":playlist:"))
             md.getString(SPOTIFY_CONTEXT_TITLE)?.takeIf { it.isNotBlank() } else null
-        return NowPlaying(playing, title, artist, album, duration, position, speed, art, playlist)
+        val isAd = md.getLong(KEY_ADVERTISEMENT) != 0L
+        return NowPlaying(playing, title, artist, album, duration, position, speed, art, playlist, isAd)
     }
 
     companion object {
+        /**
+         * Pauses Spotify without depending on this service being bound. The sleep
+         * alarm can fire into a cold process where NowPlayingRepository holds no
+         * controller yet, so the session is looked up fresh each time. Lives here
+         * because this is already the class that knows which session we control.
+         *
+         * getActiveSessions throws if the notification-listener grant has been
+         * revoked — a real possibility at any time, hence the catch.
+         */
+        fun pauseSpotify(context: Context) {
+            val msm = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+            val self = ComponentName(context, MediaListenerService::class.java)
+            val session = try {
+                msm.getActiveSessions(self).firstOrNull { it.packageName == SPOTIFY_PKG }
+            } catch (e: SecurityException) {
+                Log.w(TAG, "sleep: no notification-listener access", e)
+                null
+            }
+            session?.transportControls?.pause()
+            Log.d(TAG, "sleep: pause dispatched=${session != null}")
+        }
+
         private const val TAG = "LenovoDock" // same tag as LyricsRepository, one logcat filter
         private const val SPOTIFY_PKG = "com.spotify.music"
+        // Declared as a literal because this key only exists as a constant on
+        // MediaMetadataCompat (androidx.media), which this app doesn't depend on —
+        // the framework's android.media.MediaMetadata has no such field. The key
+        // string is the same one MediaMetadataCompat uses, and is a Long.
+        private const val KEY_ADVERTISEMENT = "android.media.metadata.ADVERTISEMENT"
         private const val SPOTIFY_ART_HTTPS_URI = "com.spotify.music.extra.ART_HTTPS_URI"
         private const val SPOTIFY_CONTEXT_URI = "com.spotify.music.extra.CONTEXT_URI"
         private const val SPOTIFY_CONTEXT_TITLE = "com.spotify.music.extra.CONTEXT_TITLE"

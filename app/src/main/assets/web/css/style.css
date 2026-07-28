@@ -178,6 +178,42 @@ button {
   color: var(--fg);
 }
 
+/* ---------- Sleep toggle (Spotify mode only) ----------
+   Height matches the 2.8rem gear so the two sit on one baseline at bottom 4vh;
+   left clears the gear's width plus a gap. Armed state uses the theme accent,
+   which is the strongest colour signal available and needs no extra token. */
+.sleep-btn {
+  position: absolute;
+  left: calc(5vw + 3.6rem);
+  bottom: 4vh;
+  height: 2.8rem;
+  display: none;
+  align-items: center;
+  padding: 0 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-dimmer);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.25s var(--ease-spring), color 0.25s, border-color 0.25s;
+  z-index: 6;
+}
+
+body.mode-spotify .sleep-btn { display: flex; }
+
+.sleep-btn.armed {
+  color: rgb(var(--accent-rgb));
+  border-color: rgb(var(--accent-rgb) / 0.8);
+}
+
+.sleep-btn:active {
+  transform: scale(0.94);
+}
+
 /* ---------- Alarms / Timers panel ---------- */
 .panel {
   position: absolute;

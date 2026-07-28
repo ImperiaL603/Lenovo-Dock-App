@@ -121,6 +121,23 @@
       <button class="option-chip" data-theme="ember">Rust</button>
     </div>
   </div>
+
+  <button class="settings-section-label" aria-expanded="false">
+    Sleep
+    <span class="section-chevron">&#9662;</span>
+  </button>
+  <div class="collapsible">
+    <div class="option-row" id="sleep-row">
+      <button class="option-chip" data-minutes="15">15 min</button>
+      <button class="option-chip" data-minutes="30">30 min</button>
+      <button class="option-chip" data-minutes="45">45 min</button>
+      <button class="option-chip" data-minutes="60">60 min</button>
+    </div>
+    <div class="custom-row">
+      <input type="number" id="sleep-custom-min" class="form-input" placeholder="Custom min" min="1" />
+      <button class="form-save-btn" id="sleep-custom-set">Set</button>
+    </div>
+  </div>
 </div>
 
 <button id="settings-btn" class="settings-btn" aria-label="Open settings">
@@ -130,6 +147,9 @@
 <!-- Testing aid: jump between Clock and Spotify without waiting on playback.
      Lives outside both sections so it stays visible in either mode. -->
 <button id="mode-btn" class="mode-btn">Spotify</button>
+
+<!-- Sleep toggle: sits beside the gear, Spotify mode only. -->
+<button id="sleep-btn" class="sleep-btn">Sleep</button>
 
 <!-- ===================== SPOTIFY ===================== -->
 <section id="spotify-mode">
@@ -174,5 +194,6 @@
 <script src="js/wallpaper.js"></script>
 <script src="js/script.js"></script>
 <script src="js/spotify.js"></script>
+<script src="js/sleep.js"></script>
 </body>
 </html>

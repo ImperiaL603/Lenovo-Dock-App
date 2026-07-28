@@ -20,6 +20,17 @@ class MediaBridge(private val context: Context) {
     @JavascriptInterface
     fun togglePlayPause() = NowPlayingRepository.togglePlayPause()
 
+    /** Sleep timer. The deadline is the armed state — 0 means off. Scheduling is
+     *  native so it survives the page, and the page reads state back from here. */
+    @JavascriptInterface
+    fun armSleep(minutes: Int): Long = SleepReceiver.arm(context, minutes)
+
+    @JavascriptInterface
+    fun cancelSleep() = SleepReceiver.cancel(context)
+
+    @JavascriptInterface
+    fun sleepDeadline(): Long = SleepReceiver.deadline(context)
+
     @JavascriptInterface
     fun skipToNext() = NowPlayingRepository.skipToNext()
 
