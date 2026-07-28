@@ -38,7 +38,15 @@ object LyricsRepository {
         private set
 
     private var observer: ((List<Line>) -> Unit)? = null
+
+    // Read and written from the media-session thread, the io executor and the retry
+    // posted to main, so neither of these can be a plain field.
+    @Volatile
     private var lastKey: String? = null
+
+    /** The one key already given a second chance, so the retry can't become a loop. */
+    @Volatile
+    private var retriedKey: String? = null
 
     fun setObserver(o: ((List<Line>) -> Unit)?) {
         observer = o
@@ -78,9 +86,50 @@ object LyricsRepository {
             // of the process, so a later play gets another attempt instead.
             if (lines.isNotEmpty()) cache[key] = lines
             // Guard against a track change that happened while this fetch was in flight.
-            if (key == lastKey) deliver(lines)
+            if (key != lastKey) return@execute
+            deliver(lines)
+            if (lines.isEmpty()) scheduleRetry(key)
         }
     }
+
+    /**
+     * An empty result is otherwise final for the rest of the song: onTrack's lastKey
+     * guard swallows every later snapshot for the same track, so a request that merely
+     * failed is indistinguishable from a track lrclib genuinely lacks — and stays blank
+     * until the song changes. Observed on "Love Like Kids" (GRAHAM), which lrclib holds
+     * eight timed copies of at the exact duration, blank for its whole 2:15. One delayed
+     * attempt separates a transient failure from a real absence.
+     *
+     * retriedKey bounds it to a single extra lookup per track. The retry has to clear
+     * lastKey to get past that same guard, and without the bound a genuinely missing
+     * track would re-queue itself every RETRY_DELAY_MS for as long as it played.
+     */
+    private fun scheduleRetry(key: String) {
+        if (key == retriedKey) return
+        retriedKey = key
+        Log.d(TAG, "empty result — retrying once in ${RETRY_DELAY_MS / 1000}s")
+        main.postDelayed({
+            val np = NowPlayingRepository.current ?: return@postDelayed
+            if (key != lastKey) return@postDelayed
+            lastKey = null
+            onTrack(np)
+        }, RETRY_DELAY_MS)
+    }
+
+    /**
+     * lrclib sends `"syncedLyrics": null` for a record with no timings, and NetEase
+     * does the same for `lrc.lyric`. Android's JSONObject.optString returns the
+     * four-character string "null" for a JSON null — the reference org.json returns
+     * the fallback instead, so this only misbehaves on the device and never in a
+     * desktop replay of the same request.
+     *
+     * Untreated, "null" is non-blank, so it passes as lyrics: exactMatch returns it,
+     * fetch() therefore never tries search or NetEase, parseLrc finds no timestamps
+     * in it, and the track renders "No lyrics found" — the exact symptom on "Love
+     * Like Kids" (GRAHAM), whose exact-duration record is the untimed one.
+     */
+    private fun JSONObject.optLyrics(key: String): String? =
+        if (isNull(key)) null else optString(key, "").takeIf { it.isNotBlank() }
 
     private fun deliver(lines: List<Line>) {
         current = lines
@@ -90,6 +139,7 @@ object LyricsRepository {
     private fun fetch(title: String, artist: String, album: String, durationSec: Long): List<Line> = try {
         val lrc = exactMatch(title, artist, album, durationSec)
             ?: searchMatch(title, artist, durationSec)
+            ?: editMatch(title, durationSec)
             ?: neteaseMatch(title, artist, durationSec)
         val lines = if (lrc == null) emptyList() else parseLrc(lrc)
         // A count far below the tag count means parseLrc's regex rejected the
@@ -120,7 +170,7 @@ object LyricsRepository {
             return null
         }
         val o = JSONObject(body)
-        val synced = o.optString("syncedLyrics", "").takeIf { it.isNotBlank() }
+        val synced = o.optLyrics("syncedLyrics")
         Log.d(TAG, "exact: id=${o.optInt("id")} dur=${o.optDouble("duration")} " +
             "album='${o.optString("albumName")}' timed=${synced != null}")
         return synced
@@ -135,20 +185,46 @@ object LyricsRepository {
      * alone and returns an empty array for the joined string.
      */
     private fun searchMatch(title: String, artist: String, durationSec: Long): String? {
-        searchOnce(title, artist, durationSec)?.let { return it }
+        searchOnce(title, artist, durationSec, LRCLIB_TOLERANCE_SEC)?.let { return it }
         val lead = artist.substringBefore(',').trim()
         if (lead == artist || lead.isEmpty()) return null
         Log.d(TAG, "search: retrying with lead artist '$lead'")
-        return searchOnce(title, lead, durationSec)
+        return searchOnce(title, lead, durationSec, LRCLIB_TOLERANCE_SEC)
+    }
+
+    /**
+     * Last lrclib pass, for slowed / sped-up / nightcore re-uploads. Spotify credits
+     * these to whoever published the edit ("hot girl bummer - Slowed & Reverb" by
+     * "adamxyz, Mr Demon"), not the original artist lrclib files them under, so every
+     * artist-bearing query above returns zero records — the artist is wrong in kind,
+     * not merely over-joined, which is why the lead-artist retry can't rescue it.
+     *
+     * Gated on the title advertising itself as an edit, because dropping the artist
+     * is only safe where the artist is known to be unreliable. Duration is then the
+     * ONLY filter, so the bound is tighter than the artist-gated passes: a correctly
+     * retimed edit is the record whose length matches ours, and the unslowed original
+     * — half a minute shorter, timings drifting the whole way — must not qualify.
+     */
+    private fun editMatch(title: String, durationSec: Long): String? {
+        val suffix = EDIT_SUFFIX_RE.find(title) ?: return null
+        val bare = title.removeRange(suffix.range).trim()
+        // No duration means nothing to match on once the artist is gone.
+        if (bare.isEmpty() || durationSec <= 0) return null
+        Log.d(TAG, "edit: '$title' -> title-only search for '$bare'")
+        return searchOnce(bare, null, durationSec, EDIT_TOLERANCE_SEC)
     }
 
     /**
      * Search results carry junk entries (a 3-second "record" for a 3-minute song),
      * so the duration bound is what keeps those out — and what makes this safe to
      * pick from automatically.
+     *
+     * A null artist searches on title alone; only editMatch does that, and only
+     * after checking the duration it leaves as the sole discriminator.
      */
-    private fun searchOnce(title: String, artist: String, durationSec: Long): String? {
-        val body = httpGet("$API/search?track_name=${enc(title)}&artist_name=${enc(artist)}")
+    private fun searchOnce(title: String, artist: String?, durationSec: Long, toleranceSec: Long): String? {
+        val body = httpGet("$API/search?track_name=${enc(title)}" +
+            if (artist != null) "&artist_name=${enc(artist)}" else "")
             ?: return null
         val results = JSONArray(body)
         var best: String? = null
@@ -157,7 +233,7 @@ object LyricsRepository {
         var timed = 0
         for (i in 0 until results.length()) {
             val o = results.optJSONObject(i) ?: continue
-            val synced = o.optString("syncedLyrics", "").takeIf { it.isNotBlank() } ?: continue
+            val synced = o.optLyrics("syncedLyrics") ?: continue
             timed++
             // Spotify occasionally reports 0 before metadata settles; with nothing to
             // compare against, the first timed record is the best available guess.
@@ -168,15 +244,15 @@ object LyricsRepository {
             // roundToLong, not toLong: lrclib reports fractional seconds, and
             // truncating inflates every delta by up to a second against the bound.
             val delta = abs(o.optDouble("duration", -1.0).roundToLong() - durationSec)
-            if (delta <= LRCLIB_TOLERANCE_SEC && delta < bestDelta) {
+            if (delta <= toleranceSec && delta < bestDelta) {
                 best = synced
                 bestDelta = delta
                 bestId = o.optInt("id")
             }
         }
-        Log.d(TAG, "search('$artist'): ${results.length()} records, $timed timed -> " +
+        Log.d(TAG, "search('${artist ?: "title-only"}'): ${results.length()} records, $timed timed -> " +
             if (best != null) "chose id=$bestId delta=${bestDelta}s"
-            else "none within ${LRCLIB_TOLERANCE_SEC}s of ${durationSec}s")
+            else "none within ${toleranceSec}s of ${durationSec}s")
         return best
     }
 
@@ -205,8 +281,7 @@ object LyricsRepository {
         }
         val lyricBody = httpGet("$NETEASE/song/lyric?id=$id&lv=1&kv=1&tv=-1", NETEASE_HEADERS)
             ?: return null
-        val lrc = JSONObject(lyricBody).optJSONObject("lrc")
-            ?.optString("lyric", "")?.takeIf { it.isNotBlank() }
+        val lrc = JSONObject(lyricBody).optJSONObject("lrc")?.optLyrics("lyric")
         Log.d(TAG, "netease: chose song id=$id timed=${lrc != null}")
         return lrc
     }
@@ -262,6 +337,22 @@ object LyricsRepository {
      */
     private val CREDIT_RE = Regex("""[一-鿿]{2,}\s*[:：]""")
 
+    /**
+     * A version label arrives either after Spotify's " - " separator ("hot girl bummer
+     * - Slowed & Reverb") or bracketed ("lucid dreams (slowed)"); both are common and
+     * the suffix runs from there to the end. Only titles carrying one of these words
+     * reach editMatch's artist-less search.
+     *
+     * The two branches differ in what they may span before the keyword: the bracketed
+     * one runs to the closing bracket so an inner hyphen can't split it ("(ambient
+     * version - slowed)"), while the dash one stops at the next hyphen so that only
+     * the last segment of "Song - Live - Remix" is taken.
+     */
+    private val EDIT_SUFFIX_RE = Regex(
+        """(\s-\s[^-]*|\s*[(\[][^)\]]*)\b(slowed|sped\s*up|nightcore|reverb|remix)\b.*$""",
+        RegexOption.IGNORE_CASE,
+    )
+
     private fun parseLrc(lrc: String): List<Line> {
         val lines = mutableListOf<Line>()
         lrc.lineSequence().forEach { raw ->
@@ -310,4 +401,10 @@ object LyricsRepository {
     // the main thing distinguishing them — so it stays tight.
     private const val LRCLIB_TOLERANCE_SEC = 5L
     private const val NETEASE_TOLERANCE_SEC = 3L
+    // editMatch drops the artist, leaving duration as the only thing standing between
+    // us and another song of the same name, so it gets the tightest bound of the three.
+    private const val EDIT_TOLERANCE_SEC = 3L
+    // Long enough that a blip has passed, short enough to still catch most of a
+    // 3-minute song's lyrics rather than arriving after the last chorus.
+    private const val RETRY_DELAY_MS = 20_000L
 }
