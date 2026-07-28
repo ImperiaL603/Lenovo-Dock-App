@@ -32,5 +32,8 @@ data class NowPlaying(
         put("hasArt", hasArt)
         put("art", art ?: JSONObject.NULL)
         put("playlistName", playlistName ?: JSONObject.NULL)
+        // The page needs this to tell an ad break apart from a track we simply
+        // found no lyrics for — both arrive as an empty lyric list.
+        put("ad", isAd)
     }.toString()
 }

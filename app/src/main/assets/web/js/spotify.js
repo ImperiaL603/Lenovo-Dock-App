@@ -19,6 +19,9 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   const GAP_LEAD_MS = 3000;    // ...but let the preceding line hold this long first
   const GAP_MIN_SHOW_MS = 2500; // an interlude shorter than this isn't worth showing
   const GLYPH_PLAY = '▶'; // U+25B6 — old enough that Roboto covers it, so it stays text
+  // Shown during an ad break. Ads and lyric-less tracks both deliver an empty list,
+  // so without this the dock reads as broken for 30 seconds twice an hour.
+  const AD_MESSAGE = 'Spotify is Bullshit';
 
   let np = null;          // latest snapshot
   let recvAt = 0;         // performance.now() when it arrived
@@ -107,7 +110,9 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   // so a lyric that wraps to two lines pushes its neighbours instead of overlapping.
   function onLyrics(data) {
     const lines = Array.isArray(data) ? data : [];
-    if (!lines.length) { showLyricsMessage('No lyrics found'); return; }
+    // Native pushes the snapshot before the lyrics for the same track, so `np`
+    // already describes whatever this empty list belongs to.
+    if (!lines.length) { showLyricsMessage(np && np.ad ? AD_MESSAGE : 'No lyrics found'); return; }
     buildLyrics(lines);
     // Lyrics can land mid-song (cold start, slow fetch): open on the right line,
     // and without a scroll animation, since there is nothing to scroll from.
