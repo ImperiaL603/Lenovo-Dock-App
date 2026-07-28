@@ -234,3 +234,40 @@ themeRow.addEventListener('click', (e) => {
   const id = e.target.dataset.theme;
   if (id) applyTheme(id);
 });
+
+// ---------- Display: auto-dim ----------
+// Native owns the sensor, the curve and the window brightness; the page owns only
+// the preference and pushes it down. Both fields travel in one call, so there is no
+// moment where the toggle has been applied and the floor hasn't.
+const autodimRow = document.getElementById('autodim-row');
+const dimfloorRow = document.getElementById('dimfloor-row');
+const DEFAULT_DIM_FLOOR = '15';
+
+let dimOn = localStorage.getItem('autodim') === 'on';
+let dimFloor = localStorage.getItem('autodim-floor');
+if (!dimfloorRow.querySelector(`[data-floor="${dimFloor}"]`)) dimFloor = DEFAULT_DIM_FLOOR;
+
+// The only writer of dimOn/dimFloor, so chips, localStorage and native can't drift.
+function applyAutoDim(on, floor) {
+  dimOn = on;
+  dimFloor = floor;
+  localStorage.setItem('autodim', on ? 'on' : 'off');
+  localStorage.setItem('autodim-floor', floor);
+  autodimRow.querySelectorAll('.option-chip')
+    .forEach((chip) => chip.classList.toggle('selected', (chip.dataset.autodim === 'on') === on));
+  dimfloorRow.querySelectorAll('.option-chip')
+    .forEach((chip) => chip.classList.toggle('selected', chip.dataset.floor === floor));
+  if (typeof AndroidDisplay !== 'undefined') AndroidDisplay.setAutoDim(on, parseInt(floor, 10));
+}
+
+applyAutoDim(dimOn, dimFloor);
+
+autodimRow.addEventListener('click', (e) => {
+  const v = e.target.dataset.autodim;
+  if (v) applyAutoDim(v === 'on', dimFloor);
+});
+
+dimfloorRow.addEventListener('click', (e) => {
+  const f = e.target.dataset.floor;
+  if (f) applyAutoDim(dimOn, f);
+});

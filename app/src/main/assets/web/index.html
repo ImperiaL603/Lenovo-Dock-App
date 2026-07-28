@@ -124,6 +124,25 @@
   </div>
 
   <button class="settings-section-label" aria-expanded="false">
+    Display
+    <span class="section-chevron">&#9662;</span>
+  </button>
+  <div class="collapsible">
+    <div class="settings-subsection-label">Auto-dim</div>
+    <div class="option-row" id="autodim-row">
+      <button class="option-chip" data-autodim="off">Off</button>
+      <button class="option-chip" data-autodim="on">On</button>
+    </div>
+    <!-- How dark the screen may get in an unlit room; the ceiling is always full. -->
+    <div class="settings-subsection-label">Dimmest</div>
+    <div class="option-row" id="dimfloor-row">
+      <button class="option-chip" data-floor="5">5%</button>
+      <button class="option-chip" data-floor="15">15%</button>
+      <button class="option-chip" data-floor="30">30%</button>
+    </div>
+  </div>
+
+  <button class="settings-section-label" aria-expanded="false">
     Sleep
     <span class="section-chevron">&#9662;</span>
   </button>

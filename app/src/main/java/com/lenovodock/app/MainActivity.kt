@@ -18,6 +18,7 @@ import android.webkit.WebViewClient
 class MainActivity : Activity() {
 
     private lateinit var webView: WebView
+    private lateinit var autoDim: AutoDim
     private var pageReady = false
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -25,6 +26,8 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Built before the WebView because it is one of the bridges registered on it.
+        autoDim = AutoDim(this)
 
         webView = WebView(this).apply {
             settings.javaScriptEnabled = true
@@ -49,6 +52,7 @@ class MainActivity : Activity() {
             }
             addJavascriptInterface(MediaBridge(this@MainActivity), MediaBridge.NAME)
             addJavascriptInterface(AlarmBridge(this@MainActivity), AlarmBridge.NAME)
+            addJavascriptInterface(autoDim, AutoDim.NAME)
             loadUrl("file:///android_asset/web/index.html")
         }
         setContentView(webView)
@@ -57,6 +61,16 @@ class MainActivity : Activity() {
         LyricsRepository.setObserver { injectLyrics(it) }
         TimerTicker.setObserver { injectTimerTick(it) }
         TimerTicker.start(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        autoDim.onResume()
+    }
+
+    override fun onPause() {
+        autoDim.onPause()
+        super.onPause()
     }
 
      private fun injectAlarms() {
