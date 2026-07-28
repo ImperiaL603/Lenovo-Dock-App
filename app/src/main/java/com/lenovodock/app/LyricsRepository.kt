@@ -11,6 +11,7 @@ import java.net.URLEncoder
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import kotlin.math.abs
+import kotlin.math.roundToLong
 
 /**
  * Fetches synced lyrics from lrclib.net for the current track and hands them
@@ -127,11 +128,26 @@ object LyricsRepository {
 
     /**
      * Fallback: consider every record for this song and take the timed one whose
-     * duration is closest to what Spotify reports. Search results carry junk entries
-     * (a 3-second "record" for a 3-minute song), so the duration bound is what keeps
-     * those out — and what makes this safe to pick from automatically.
+     * duration is closest to what Spotify reports.
+     *
+     * Two passes, because Spotify names every credited artist ("Shiloh Dynasty,
+     * VAL, Zuriel") while lrclib indexes most of those tracks under the lead artist
+     * alone and returns an empty array for the joined string.
      */
     private fun searchMatch(title: String, artist: String, durationSec: Long): String? {
+        searchOnce(title, artist, durationSec)?.let { return it }
+        val lead = artist.substringBefore(',').trim()
+        if (lead == artist || lead.isEmpty()) return null
+        Log.d(TAG, "search: retrying with lead artist '$lead'")
+        return searchOnce(title, lead, durationSec)
+    }
+
+    /**
+     * Search results carry junk entries (a 3-second "record" for a 3-minute song),
+     * so the duration bound is what keeps those out — and what makes this safe to
+     * pick from automatically.
+     */
+    private fun searchOnce(title: String, artist: String, durationSec: Long): String? {
         val body = httpGet("$API/search?track_name=${enc(title)}&artist_name=${enc(artist)}")
             ?: return null
         val results = JSONArray(body)
@@ -149,16 +165,18 @@ object LyricsRepository {
                 Log.d(TAG, "search: duration unknown, taking first timed id=${o.optInt("id")}")
                 return synced
             }
-            val delta = abs(o.optDouble("duration", -1.0).toLong() - durationSec)
-            if (delta <= DURATION_TOLERANCE_SEC && delta < bestDelta) {
+            // roundToLong, not toLong: lrclib reports fractional seconds, and
+            // truncating inflates every delta by up to a second against the bound.
+            val delta = abs(o.optDouble("duration", -1.0).roundToLong() - durationSec)
+            if (delta <= LRCLIB_TOLERANCE_SEC && delta < bestDelta) {
                 best = synced
                 bestDelta = delta
                 bestId = o.optInt("id")
             }
         }
-        Log.d(TAG, "search: ${results.length()} records, $timed timed -> " +
+        Log.d(TAG, "search('$artist'): ${results.length()} records, $timed timed -> " +
             if (best != null) "chose id=$bestId delta=${bestDelta}s"
-            else "none within ${DURATION_TOLERANCE_SEC}s of ${durationSec}s")
+            else "none within ${LRCLIB_TOLERANCE_SEC}s of ${durationSec}s")
         return best
     }
 
@@ -205,7 +223,7 @@ object LyricsRepository {
         for (i in 0 until songs.length()) {
             val s = songs.optJSONObject(i) ?: continue
             val delta = abs(s.optLong("duration") / 1000 - durationSec)
-            if (durationSec > 0 && delta > DURATION_TOLERANCE_SEC) continue
+            if (durationSec > 0 && delta > NETEASE_TOLERANCE_SEC) continue
             val names = s.optJSONArray("artists")?.let { arr ->
                 (0 until arr.length()).mapNotNull { arr.optJSONObject(it)?.optString("name") }
             }?.joinToString(", ")?.lowercase().orEmpty()
@@ -285,5 +303,11 @@ object LyricsRepository {
         "User-Agent" to "Mozilla/5.0",
     )
     private const val USER_AGENT = "LenovoDock/1.0 (https://github.com/lenovodock)"
-    private const val DURATION_TOLERANCE_SEC = 3L
+    // Separate bounds because the two providers face different failure modes.
+    // lrclib's results are already scoped to one title+artist and we take the
+    // closest, so a wider bound only matters when nothing is near. NetEase's search
+    // returns sped-up edits and piano covers of the same title, where duration is
+    // the main thing distinguishing them — so it stays tight.
+    private const val LRCLIB_TOLERANCE_SEC = 5L
+    private const val NETEASE_TOLERANCE_SEC = 3L
 }
