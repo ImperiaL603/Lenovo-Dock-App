@@ -166,7 +166,8 @@ document.getElementById('save-timer-btn').addEventListener('click', () => {
 // ---------- Native bridge hooks (merge, don't overwrite — spotify.js also uses window.LenovoDock) ----------
 window.LenovoDock = Object.assign(window.LenovoDock || {}, {
   onAlarmsChanged(list) { alarms = list; renderAlarms(); },
-  onTimerTick(list) { timers = list; renderTimers(); }
+  onTimerTick(list) { timers = list; renderTimers(); },
+  onAlbumColour(rgb) { albumRgb = rgb; applyColourSource(); }
 });
 
 // Initial load from native (in case onPageFinished's push races with script load)
@@ -233,6 +234,51 @@ applyTheme(themeRow.querySelector(`[data-theme="${savedTheme}"]`) ? savedTheme :
 themeRow.addEventListener('click', (e) => {
   const id = e.target.dataset.theme;
   if (id) applyTheme(id);
+});
+
+// ---------- Album colours ----------
+// Inline custom properties outrank themes.css's :root[data-theme] rules, so the
+// presence of an inline override IS "the album is driving". Clearing it hands the
+// dock back to the selected theme, which is why there's no second piece of state
+// tracking which source is active and no way for the two to disagree.
+const albumRow = document.getElementById('albumcolour-row');
+const ACCENT_SHARE = 0.4; // themes.css blends 60% light text + 40% accent for --fg-rgb
+
+let albumOn = localStorage.getItem('album-colours') === 'on';
+let albumRgb = null;      // "r g b" from native, or null when there's no art
+
+function applyColourSource() {
+  const root = document.documentElement;
+  if (albumOn && albumRgb) {
+    root.style.setProperty('--accent-rgb', albumRgb);
+    root.style.setProperty('--fg-rgb', towardsWhite(albumRgb));
+  } else {
+    root.style.removeProperty('--accent-rgb');
+    root.style.removeProperty('--fg-rgb');
+  }
+}
+
+// A colour straight off a sleeve is far too saturated to read as body type across a
+// room, so --fg-rgb gets the same treatment the ported themes give theirs.
+function towardsWhite(rgb) {
+  return rgb.split(' ')
+    .map((c) => Math.round(255 * (1 - ACCENT_SHARE) + Number(c) * ACCENT_SHARE))
+    .join(' ');
+}
+
+function applyAlbumColours(on) {
+  albumOn = on;
+  localStorage.setItem('album-colours', on ? 'on' : 'off');
+  albumRow.querySelectorAll('.option-chip')
+    .forEach((chip) => chip.classList.toggle('selected', (chip.dataset.album === 'on') === on));
+  applyColourSource();
+}
+
+applyAlbumColours(albumOn);
+
+albumRow.addEventListener('click', (e) => {
+  const v = e.target.dataset.album;
+  if (v) applyAlbumColours(v === 'on');
 });
 
 // ---------- Display: auto-dim ----------

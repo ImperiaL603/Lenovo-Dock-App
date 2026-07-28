@@ -39,6 +39,7 @@ class MainActivity : Activity() {
                     pageReady = true
                     inject(NowPlayingRepository.current)
                     injectLyrics(LyricsRepository.current)
+                    injectAlbumColour(ArtPalette.current)
                     injectAlarms()
                 }
             }
@@ -59,6 +60,7 @@ class MainActivity : Activity() {
 
         NowPlayingRepository.setObserver { inject(it) }
         LyricsRepository.setObserver { injectLyrics(it) }
+        ArtPalette.setObserver { injectAlbumColour(it) }
         TimerTicker.setObserver { injectTimerTick(it) }
         TimerTicker.start(this)
     }
@@ -91,6 +93,14 @@ class MainActivity : Activity() {
     webView.evaluateJavascript("window.LenovoDock&&LenovoDock.onLyrics($json)", null)
     }
 
+    /** Sent as a CSS-ready "r g b" triple, or null to hand colour back to the theme. */
+    private fun injectAlbumColour(rgb: Int?) {
+        if (!pageReady) return
+        val arg = if (rgb == null) "null"
+            else "\"${(rgb shr 16) and 0xFF} ${(rgb shr 8) and 0xFF} ${rgb and 0xFF}\""
+        webView.evaluateJavascript("window.LenovoDock&&LenovoDock.onAlbumColour($arg)", null)
+    }
+
     private fun inject(np: NowPlaying?) {
         if (!pageReady) return
         val call = if (np == null) "window.LenovoDock&&LenovoDock.onPlaybackGone()"
@@ -119,6 +129,7 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         NowPlayingRepository.setObserver(null)
         LyricsRepository.setObserver(null)
+        ArtPalette.setObserver(null)
         TimerTicker.stop()
         webView.destroy()
         super.onDestroy()

@@ -73,6 +73,7 @@ class MediaListenerService : NotificationListenerService() {
         NowPlayingRepository.update(np)
         logSnapshot(np)
         np?.let(LyricsRepository::onTrack)
+        ArtPalette.onArt(np?.art)
     }
 
     /**
