@@ -71,9 +71,9 @@ class MainActivity : Activity() {
         webView.evaluateJavascript("window.LenovoDock&&LenovoDock.onTimerTick($arr)", null)
     }
 
-    private fun injectLyrics(lines: List<LyricsRepository.Line>) {
+    private fun injectLyrics(lyrics: LyricsRepository.Lyrics) {
     if (!pageReady) return
-    val json = LyricsRepository.toJson(lines)
+    val json = LyricsRepository.toJson(lyrics)
     webView.evaluateJavascript("window.LenovoDock&&LenovoDock.onLyrics($json)", null)
     }
 

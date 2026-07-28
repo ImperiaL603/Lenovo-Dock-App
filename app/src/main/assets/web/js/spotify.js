@@ -34,6 +34,8 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
 
   let lyrics = [];
   let lyricsIdx = -1;
+  let plainMode = false;  // lyrics with no timings: scrolled by progress, never highlighted
+  let plainSpan = 0;      // px the plain block travels, top of first line to bottom of last
   let lineEls = [];       // one element per lyric, index-aligned with `lyrics`
   let lineCenters = [];   // each line's centre inside the track, measured after layout
   let windowCenter = 0;
@@ -109,14 +111,15 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   // active line sits at the window's centre. Line spacing comes from normal flow,
   // so a lyric that wraps to two lines pushes its neighbours instead of overlapping.
   function onLyrics(data) {
-    const lines = Array.isArray(data) ? data : [];
+    const lines = data && Array.isArray(data.lines) ? data.lines : [];
     // Native pushes the snapshot before the lyrics for the same track, so `np`
     // already describes whatever this empty list belongs to.
     if (!lines.length) { showLyricsMessage(np && np.ad ? AD_MESSAGE : 'No lyrics found'); return; }
-    buildLyrics(lines);
+    buildLyrics(lines, !data.synced);
     // Lyrics can land mid-song (cold start, slow fetch): open on the right line,
     // and without a scroll animation, since there is nothing to scroll from.
-    setActive(firstIndexAt(lyricPos()), false);
+    if (plainMode) scrollPlain(lyricPos());
+    else setActive(firstIndexAt(lyricPos()), false);
   }
 
   // Interludes become first-class items on the timeline rather than a special
@@ -137,12 +140,16 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     return items;
   }
 
-  function buildLyrics(lines) {
-    lyrics = withGaps(lines); // timeline of what gets shown: sung lines and interludes
+  // `plain` lines have no timings, so they get no interludes (which are derived from
+  // the gaps between timestamps) and no per-line emphasis — is-plain tells CSS to
+  // render them all alike, since --d is never set without an active line.
+  function buildLyrics(lines, plain) {
+    plainMode = !!plain;
+    lyrics = plainMode ? lines.map((l) => ({ text: l.text })) : withGaps(lines);
     lyricsIdx = -1;
     els['lyrics-window'].innerHTML = '';
     track = document.createElement('div');
-    track.className = 'lyrics-track';
+    track.className = plainMode ? 'lyrics-track is-plain' : 'lyrics-track';
     lineEls = lyrics.map((item) => {
       const el = document.createElement('div');
       el.className = item.gap ? 'lyric-line lyric-gap' : 'lyric-line';
@@ -176,8 +183,26 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   // have changed: a new track, entering the mode, a rotation, or a late webfont.
   function measure() {
     if (!track) return;
-    windowCenter = els['lyrics-window'].clientHeight / 2;
+    const windowHeight = els['lyrics-window'].clientHeight;
+    windowCenter = windowHeight / 2;
     lineCenters = lineEls.map((el) => el.offsetTop + el.offsetHeight / 2);
+    // A block shorter than the window has nowhere to go, hence the floor at 0.
+    plainSpan = Math.max(0, track.offsetHeight - windowHeight);
+  }
+
+  // Everything that re-seats the view after a layout change has to respect which
+  // mode is running: scrollToLine would yank a plain block back to its first line.
+  function reseat() {
+    if (plainMode) scrollPlain(lyricPos());
+    else scrollToLine(Math.max(0, lyricsIdx), false);
+  }
+
+  // No timestamps to sync to, so the block drifts from first line to last across the
+  // track. Every word is seen and nothing claims to know which one is being sung.
+  function scrollPlain(pos) {
+    if (!track || !np || !np.durationMs) return;
+    const p = Math.min(1, Math.max(0, pos / np.durationMs));
+    track.style.transform = `translateY(${-plainSpan * p}px)`;
   }
 
   function firstIndexAt(pos) {
@@ -210,6 +235,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
 
   function updateLyrics(pos) {
     if (!lyrics.length) return;
+    if (plainMode) { scrollPlain(pos); return; }
     const idx = firstIndexAt(pos);
     if (idx === lyricsIdx) return;
     // A scroll across half the song reads as a glitch; a seek should just arrive.
@@ -247,7 +273,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     // #spotify-mode is display:none until now, so anything measured before this
     // point measured zero. Re-measure and re-seat the active line.
     measure();
-    scrollToLine(Math.max(0, lyricsIdx), false);
+    reseat();
   }
 
   function exitToClock() {
@@ -330,7 +356,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function remeasure() {
     if (!lineEls.length) return;
     measure();
-    scrollToLine(Math.max(0, lyricsIdx), false);
+    reseat();
   }
 
   cacheEls();

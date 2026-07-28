@@ -154,6 +154,14 @@ body.mode-spotify .bg-video { opacity: 0; }
 /* Set while JS lands a seek or a re-measure, so the jump doesn't animate. */
 .lyrics-track.no-anim { transition: none; }
 
+/* Unsynced lyrics: the whole block drifts past at a constant rate instead of
+   stepping line to line, so the easing curve is replaced by a linear one that
+   spans exactly one JS tick — same trick the progress bar uses to turn a 100ms
+   beat into continuous motion. No line is "current", so none is emphasised. */
+.lyrics-track.is-plain { transition: transform 0.1s linear; }
+
+.lyrics-track.is-plain .lyric-line { opacity: 0.78; }
+
 .lyric-line {
   --d: 0;
   margin: 0.55rem 0;

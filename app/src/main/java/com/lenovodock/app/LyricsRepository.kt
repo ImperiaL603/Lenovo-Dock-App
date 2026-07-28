@@ -29,15 +29,23 @@ object LyricsRepository {
 
     data class Line(val timeMs: Long, val text: String)
 
+    /**
+     * `synced = false` means these came from lrclib's `plainLyrics` — the words with
+     * no timings attached, which many records carry when `syncedLyrics` is null.
+     * Their `timeMs` is 0 and meaningless; the page scrolls them by track progress
+     * instead and shows no active line, because there is nothing to be active.
+     */
+    data class Lyrics(val lines: List<Line>, val synced: Boolean)
+
     private val main = Handler(Looper.getMainLooper())
     private val io = Executors.newSingleThreadExecutor()
-    private val cache = ConcurrentHashMap<String, List<Line>>()
+    private val cache = ConcurrentHashMap<String, Lyrics>()
 
     @Volatile
-    var current: List<Line> = emptyList()
+    var current: Lyrics = Lyrics(emptyList(), true)
         private set
 
-    private var observer: ((List<Line>) -> Unit)? = null
+    private var observer: ((Lyrics) -> Unit)? = null
 
     // Read and written from the media-session thread, the io executor and the retry
     // posted to main, so neither of these can be a plain field.
@@ -48,7 +56,7 @@ object LyricsRepository {
     @Volatile
     private var retriedKey: String? = null
 
-    fun setObserver(o: ((List<Line>) -> Unit)?) {
+    fun setObserver(o: ((Lyrics) -> Unit)?) {
         observer = o
         o?.let { obs -> main.post { obs(current) } }
     }
@@ -70,25 +78,25 @@ object LyricsRepository {
         lastKey = key
         if (np.isAd) {
             Log.d(TAG, "ad break — no lookup ('$title' / '$artist')")
-            deliver(emptyList())
+            deliver(Lyrics(emptyList(), true))
             return
         }
         // The exact strings Spotify gave us. Mismatches against lrclib's own
         // spelling start here, so this is the first line to read on a miss.
         Log.d(TAG, "track: title='$title' artist='$artist' album='$album' duration=${np.durationMs / 1000}s")
 
-        cache[key]?.let { Log.d(TAG, "cache hit: ${it.size} lines"); deliver(it); return }
+        cache[key]?.let { Log.d(TAG, "cache hit: ${it.lines.size} lines"); deliver(it); return }
 
         io.execute {
-            val lines = fetch(title, artist, album, np.durationMs / 1000)
+            val lyrics = fetch(title, artist, album, np.durationMs / 1000)
             // Only successes are cached. An empty result means "a timeout, a 5xx or
             // no timed record" — caching that would keep the track blank for the rest
             // of the process, so a later play gets another attempt instead.
-            if (lines.isNotEmpty()) cache[key] = lines
+            if (lyrics.lines.isNotEmpty()) cache[key] = lyrics
             // Guard against a track change that happened while this fetch was in flight.
             if (key != lastKey) return@execute
-            deliver(lines)
-            if (lines.isEmpty()) scheduleRetry(key)
+            deliver(lyrics)
+            if (lyrics.lines.isEmpty()) scheduleRetry(key)
         }
     }
 
@@ -131,28 +139,48 @@ object LyricsRepository {
     private fun JSONObject.optLyrics(key: String): String? =
         if (isNull(key)) null else optString(key, "").takeIf { it.isNotBlank() }
 
-    private fun deliver(lines: List<Line>) {
-        current = lines
-        main.post { observer?.invoke(lines) }
+    private fun deliver(lyrics: Lyrics) {
+        current = lyrics
+        main.post { observer?.invoke(lyrics) }
     }
 
-    private fun fetch(title: String, artist: String, album: String, durationSec: Long): List<Line> = try {
+    private fun fetch(title: String, artist: String, album: String, durationSec: Long): Lyrics = try {
         val lrc = exactMatch(title, artist, album, durationSec)
             ?: searchMatch(title, artist, durationSec)
             ?: editMatch(title, durationSec)
             ?: neteaseMatch(title, artist, durationSec)
-        val lines = if (lrc == null) emptyList() else parseLrc(lrc)
+        val timed = if (lrc == null) emptyList() else parseLrc(lrc)
         // A count far below the tag count means parseLrc's regex rejected the
         // file's timestamp format; zero with a non-null body means the same.
-        Log.d(TAG, "result: ${lines.size} lines parsed" +
+        Log.d(TAG, "result: ${timed.size} lines parsed" +
             if (lrc != null) " from ${lrc.count { it == '\n' } + 1} raw lines" else " (no source)")
-        lines
+        if (timed.isNotEmpty()) Lyrics(timed, true) else plainFallback(title, artist, album, durationSec)
     } catch (e: Exception) {
         Log.w(TAG, "unparseable response", e)
         // A 200 carrying a body we can't parse. Third-party boundary, so worth
         // catching: without this the executor thread dies and nothing is delivered,
         // leaving the window blank rather than saying "No lyrics found".
-        emptyList()
+        Lyrics(emptyList(), true)
+    }
+
+    /**
+     * Reached only when nothing timed exists anywhere. lrclib frequently holds a
+     * track's words with nobody's timings attached — a record whose `syncedLyrics`
+     * is null usually still has `plainLyrics` set, and some songs have a dozen such
+     * records and not one synced ("Story of a Warrior" by John Michael Howell). Those
+     * used to render "No lyrics found" while the full text sat in a response we had
+     * already parsed and discarded.
+     *
+     * Same two passes as the timed lookup, just reading the other field, so a
+     * multi-artist string still gets its lead-artist retry. Costs extra requests only
+     * on tracks that were going to show nothing at all.
+     */
+    private fun plainFallback(title: String, artist: String, album: String, durationSec: Long): Lyrics {
+        val plain = exactMatch(title, artist, album, durationSec, PLAIN)
+            ?: searchMatch(title, artist, durationSec, PLAIN)
+        val lines = if (plain == null) emptyList() else parsePlain(plain)
+        Log.d(TAG, "plain: ${lines.size} lines" + if (plain == null) " (no source)" else "")
+        return Lyrics(lines, false)
     }
 
     /**
@@ -161,7 +189,13 @@ object LyricsRepository {
      * the same outcome, and treating the second as "no lyrics" is what used to hide
      * lyrics that lrclib demonstrably had under a different album name.
      */
-    private fun exactMatch(title: String, artist: String, album: String, durationSec: Long): String? {
+    private fun exactMatch(
+        title: String,
+        artist: String,
+        album: String,
+        durationSec: Long,
+        field: String = SYNCED,
+    ): String? {
         val url = "$API/get?track_name=${enc(title)}&artist_name=${enc(artist)}" +
             "&album_name=${enc(album)}&duration=$durationSec"
         val body = httpGet(url)
@@ -170,10 +204,10 @@ object LyricsRepository {
             return null
         }
         val o = JSONObject(body)
-        val synced = o.optLyrics("syncedLyrics")
-        Log.d(TAG, "exact: id=${o.optInt("id")} dur=${o.optDouble("duration")} " +
-            "album='${o.optString("albumName")}' timed=${synced != null}")
-        return synced
+        val found = o.optLyrics(field)
+        Log.d(TAG, "exact($field): id=${o.optInt("id")} dur=${o.optDouble("duration")} " +
+            "album='${o.optString("albumName")}' hit=${found != null}")
+        return found
     }
 
     /**
@@ -184,12 +218,17 @@ object LyricsRepository {
      * VAL, Zuriel") while lrclib indexes most of those tracks under the lead artist
      * alone and returns an empty array for the joined string.
      */
-    private fun searchMatch(title: String, artist: String, durationSec: Long): String? {
-        searchOnce(title, artist, durationSec, LRCLIB_TOLERANCE_SEC)?.let { return it }
+    private fun searchMatch(
+        title: String,
+        artist: String,
+        durationSec: Long,
+        field: String = SYNCED,
+    ): String? {
+        searchOnce(title, artist, durationSec, LRCLIB_TOLERANCE_SEC, field)?.let { return it }
         val lead = artist.substringBefore(',').trim()
         if (lead == artist || lead.isEmpty()) return null
         Log.d(TAG, "search: retrying with lead artist '$lead'")
-        return searchOnce(title, lead, durationSec, LRCLIB_TOLERANCE_SEC)
+        return searchOnce(title, lead, durationSec, LRCLIB_TOLERANCE_SEC, field)
     }
 
     /**
@@ -222,7 +261,13 @@ object LyricsRepository {
      * A null artist searches on title alone; only editMatch does that, and only
      * after checking the duration it leaves as the sole discriminator.
      */
-    private fun searchOnce(title: String, artist: String?, durationSec: Long, toleranceSec: Long): String? {
+    private fun searchOnce(
+        title: String,
+        artist: String?,
+        durationSec: Long,
+        toleranceSec: Long,
+        field: String = SYNCED,
+    ): String? {
         val body = httpGet("$API/search?track_name=${enc(title)}" +
             if (artist != null) "&artist_name=${enc(artist)}" else "")
             ?: return null
@@ -233,7 +278,7 @@ object LyricsRepository {
         var timed = 0
         for (i in 0 until results.length()) {
             val o = results.optJSONObject(i) ?: continue
-            val synced = o.optLyrics("syncedLyrics") ?: continue
+            val synced = o.optLyrics(field) ?: continue
             timed++
             // Spotify occasionally reports 0 before metadata settles; with nothing to
             // compare against, the first timed record is the best available guess.
@@ -250,7 +295,7 @@ object LyricsRepository {
                 bestId = o.optInt("id")
             }
         }
-        Log.d(TAG, "search('${artist ?: "title-only"}'): ${results.length()} records, $timed timed -> " +
+        Log.d(TAG, "search('${artist ?: "title-only"}' $field): ${results.length()} records, $timed with -> " +
             if (best != null) "chose id=$bestId delta=${bestDelta}s"
             else "none within ${toleranceSec}s of ${durationSec}s")
         return best
@@ -369,15 +414,26 @@ object LyricsRepository {
         return lines.sortedBy { it.timeMs }
     }
 
-    fun toJson(lines: List<Line>): String {
+    /** Plain lyrics are one line of text per line, no timestamps to read. */
+    private fun parsePlain(text: String): List<Line> =
+        text.lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .map { Line(0L, it) }
+            .toList()
+
+    fun toJson(lyrics: Lyrics): String {
         val arr = JSONArray()
-        lines.forEach {
+        lyrics.lines.forEach {
             arr.put(JSONObject().apply {
                 put("t", it.timeMs)
                 put("text", it.text)
             })
         }
-        return arr.toString()
+        return JSONObject().apply {
+            put("synced", lyrics.synced)
+            put("lines", arr)
+        }.toString()
     }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
@@ -386,6 +442,10 @@ object LyricsRepository {
      *  playback snapshot and the lyrics lookup for a track interleaved. */
     private const val TAG = "LenovoDock"
     private const val API = "https://lrclib.net/api"
+    // The two lyric fields on an lrclib record. Every lookup runs for one of them,
+    // which is why the passes take the field rather than duplicating URL building.
+    private const val SYNCED = "syncedLyrics"
+    private const val PLAIN = "plainLyrics"
     private const val NETEASE = "https://music.163.com/api"
     // NetEase's web endpoint rejects requests without a matching Referer, and a
     // browser UA keeps it from treating us as a bot.
