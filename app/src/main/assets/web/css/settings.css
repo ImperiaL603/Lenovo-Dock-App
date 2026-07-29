@@ -140,19 +140,8 @@ body.settings-open .settings-panel {
   text-transform: uppercase;
 }
 
-.option-row {
-  display: flex;
-  flex-wrap: wrap; /* the theme row is nine chips wide */
-  gap: 0.5rem;
-  margin-bottom: 0.9rem;
-}
-
-.option-row:last-child {
-  margin-bottom: 0;
-}
-
-/* Free-text alternative to a chip row. Reuses .form-input / .form-save-btn
-   from the timer form so the two ways of entering a number look the same. */
+/* Free-text alternative to a chip row. Reuses .form-input / .form-save-btn from
+   style.css's shared controls so the two ways of entering a number look the same. */
 .custom-row {
   display: flex;
   align-items: center;
@@ -161,32 +150,6 @@ body.settings-open .settings-panel {
 
 .custom-row .form-input {
   width: 9rem;
-}
-
-.wallpaper-chip,
-.option-chip {
-  padding: 0.5rem 0.9rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--fg-dim);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-soft);
-  border-radius: 999px;
-  transition: transform 0.2s var(--ease-spring), background 0.2s, color 0.2s;
-  -webkit-tap-highlight-color: transparent;
-  outline: none;
-}
-
-.wallpaper-chip:active,
-.option-chip:active {
-  transform: scale(0.94);
-}
-
-.wallpaper-chip.selected,
-.option-chip.selected {
-  color: var(--fg);
-  background: rgba(255, 255, 255, 0.16);
-  border-color: var(--border);
 }
 
 body.settings-open #clock-mode .clock-block {

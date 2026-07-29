@@ -62,6 +62,9 @@ class MainActivity : Activity() {
         LyricsRepository.setObserver { injectLyrics(it) }
         ArtPalette.setObserver { injectAlbumColour(it) }
         TimerTicker.setObserver { injectTimerTick(it) }
+        // A rung alarm changes the set behind the page's back, and the clock face
+        // shows the next one — so the page can no longer be the only writer.
+        AlarmStore.setAlarmObserver { injectAlarms() }
         TimerTicker.start(this)
     }
 
@@ -130,6 +133,7 @@ class MainActivity : Activity() {
         NowPlayingRepository.setObserver(null)
         LyricsRepository.setObserver(null)
         ArtPalette.setObserver(null)
+        AlarmStore.setAlarmObserver(null)
         TimerTicker.stop()
         webView.destroy()
         super.onDestroy()

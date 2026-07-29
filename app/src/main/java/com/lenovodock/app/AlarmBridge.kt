@@ -8,9 +8,18 @@ import org.json.JSONObject
 /** JS bridge exposed to the WebView as `AndroidAlarms`. */
 class AlarmBridge(private val context: Context) {
 
+    /**
+     * The page needs each alarm's fire time to pick the next one and put a day on it,
+     * but the store must not carry it: it is derived from hour/minute/days and goes
+     * stale the moment one rings. AlarmStore.saveAlarms persists whatever toJson()
+     * returns, so the field is added here, on the way out to JS, and nowhere else.
+     */
+    private fun Alarm.toPageJson(): JSONObject =
+        toJson().put("nextTriggerMillis", AlarmScheduler.nextTriggerMillis(this))
+
     @JavascriptInterface
     fun listAlarms(): String {
-        val arr = JSONArray(); AlarmStore.loadAlarms(context).forEach { arr.put(it.toJson()) }
+        val arr = JSONArray(); AlarmStore.loadAlarms(context).forEach { arr.put(it.toPageJson()) }
         return arr.toString()
     }
 
@@ -30,7 +39,7 @@ class AlarmBridge(private val context: Context) {
         val alarms = AlarmStore.loadAlarms(context)
         alarms.add(alarm); AlarmStore.saveAlarms(context, alarms)
         AlarmScheduler.scheduleAlarm(context, alarm)
-        return alarm.toJson().toString()
+        return alarm.toPageJson().toString()
     }
 
     @JavascriptInterface

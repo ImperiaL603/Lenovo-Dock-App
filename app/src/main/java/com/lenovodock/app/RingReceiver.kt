@@ -19,6 +19,9 @@ class RingReceiver : BroadcastReceiver() {
                     alarms.remove(alarm); AlarmStore.saveAlarms(context, alarms)
                 } else {
                     AlarmScheduler.scheduleAlarm(context, alarm)
+                    // Nothing was written, so saveAlarms' notification doesn't cover
+                    // this — but the time the clock face is showing just moved on.
+                    AlarmStore.notifyAlarmsChanged()
                 }
             }
         } else {

@@ -12,6 +12,7 @@
 
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/themes.css" />
+<link rel="stylesheet" href="css/alarms.css" />
 <link rel="stylesheet" href="css/settings.css" />
 <link rel="stylesheet" href="css/spotify.css" />
 <link rel="stylesheet" href="css/idle.css" />
@@ -33,6 +34,11 @@
         <span class="clock-ampm" id="clock-ampm">AM</span>
         <span class="dash">-</span>
       </div>
+      <!-- Below the time rather than between date and time: day/date/time read as
+           one stack, and these are subordinate to all three. Filled by script.js;
+           left empty when nothing is scheduled or running, which :empty hides. -->
+      <div class="next-alarm" id="next-alarm"></div>
+      <div class="next-timer" id="next-timer"></div>
     </div>
 
     <!-- Alarms / Timers panel: hidden until "+" is tapped -->
@@ -45,14 +51,16 @@
         <div class="inline-form" id="new-alarm-form">
           <input type="time" id="new-alarm-time" class="form-input" />
           <input type="text" id="new-alarm-label" class="form-input" placeholder="Label (optional)" />
-          <div class="day-chip-row">
-            <button class="day-chip" data-day="1">Sun</button>
-            <button class="day-chip" data-day="2">Mon</button>
-            <button class="day-chip" data-day="3">Tue</button>
-            <button class="day-chip" data-day="4">Wed</button>
-            <button class="day-chip" data-day="5">Thu</button>
-            <button class="day-chip" data-day="6">Fri</button>
-            <button class="day-chip" data-day="7">Sat</button>
+          <!-- Same chip primitive as every settings row; data-day carries the
+               Calendar constant and is what script.js selects on. -->
+          <div class="option-row">
+            <button class="option-chip" data-day="1">Sun</button>
+            <button class="option-chip" data-day="2">Mon</button>
+            <button class="option-chip" data-day="3">Tue</button>
+            <button class="option-chip" data-day="4">Wed</button>
+            <button class="option-chip" data-day="5">Thu</button>
+            <button class="option-chip" data-day="6">Fri</button>
+            <button class="option-chip" data-day="7">Sat</button>
           </div>
           <button class="form-save-btn" id="save-alarm-btn">Save Alarm</button>
         </div>

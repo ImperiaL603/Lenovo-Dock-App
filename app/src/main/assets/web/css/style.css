@@ -1,5 +1,6 @@
 /* ============================================================
-   DESIGN TOKENS
+   DESIGN TOKENS, base, clock, floating buttons, shared controls.
+   The alarms/timers panel lives in alarms.css, settings in settings.css.
    ============================================================ */
 :root {
   --bg: #000000;
@@ -27,6 +28,11 @@
      both this file and spotify.css scale off the same value. */
   --clock-scale: 1;
   --spotify-scale: 1;
+
+  /* Chromium draws <input type="time"/"number"> and scrollbars from this. Without
+     it the alarm form's native time spinner renders as a light widget in the
+     middle of a dark glass panel — the one control that never matched. */
+  color-scheme: dark;
 }
 
 /* ============================================================
@@ -151,6 +157,69 @@ button {
   letter-spacing: 0.05em;
 }
 
+/* ---------- Next alarm / running timer ----------
+   The clock block's two quietest lines: readable from across the room without ever
+   competing with the hour above them. script.js leaves either empty when it has
+   nothing to say, and :empty then removes the row rather than leaving a gap. */
+.next-alarm,
+.next-timer {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  font-size: clamp(0.95rem, 1.7vw, 1.35rem);
+  color: var(--fg-dim);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 3px 30px rgba(0, 0, 0, 0.7);
+}
+
+.next-alarm:empty,
+.next-timer:empty {
+  display: none;
+}
+
+/* Close up only when the two stack; a timer with no alarm above it keeps the full
+   gap under the clock. */
+.next-alarm:not(:empty) + .next-timer {
+  margin-top: 0.35rem;
+}
+
+/* Full --fg, matching the time beside them. Tried --fg-dimmer then --fg-dim; both
+   were reported unreadable at dock distance. Small uppercase text over a moving
+   wallpaper needs the alpha the body copy gets — the 0.78em size and the letter
+   spacing are what keep it subordinate to the time, not a lower opacity. Under a
+   tinted theme --fg is not white either, so a fraction of it had little left. */
+.next-alarm-when,
+.next-timer-tag {
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.next-alarm-time,
+.next-timer-time {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* Separator drawn by the label so it can't appear on an unlabelled item. */
+.next-alarm-label::before,
+.next-timer-label::before {
+  content: '\00B7';
+  margin-right: 0.5rem;
+  color: var(--fg-dimmer);
+}
+
+/* A count, not something you act on, so it stays behind the timer it qualifies —
+   but one step only. --fg-dimmer has now failed twice on this panel. */
+.next-timer-more {
+  font-size: 0.78em;
+  color: var(--fg-dim);
+}
+
 /* ---------- Mode switch (testing aid) ----------
    A pill rather than a circular icon button: no glyph exists for "clock mode"
    that survives the font fallback, and a word is unambiguous anyway. Sits above
@@ -216,123 +285,53 @@ body.mode-spotify .sleep-btn { display: flex; }
   transform: scale(0.94);
 }
 
-/* ---------- Alarms / Timers panel ---------- */
-.panel {
-  position: absolute;
-  left: 50%;
-  bottom: 4vh;
-  transform: translate(-50%, 30px);
-  width: min(70vw, 850px);
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-  transition: max-height 0.5s var(--ease-smooth),
-              opacity 0.4s var(--ease-smooth),
-              transform 0.5s var(--ease-smooth);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
-  background: rgba(0, 0, 0, 0.88); /* matches .settings-panel */
-  border-radius: 12px;
-  padding: 1.2rem 1.5rem;
-}
+/* ============================================================
+   SHARED CONTROLS
+   The chip row, the chip and the two form widgets, used by both panels — the
+   settings sections, the wallpaper grid and the alarm form's day picker are all
+   the same primitive. They live here rather than in either panel's stylesheet
+   because neither owns them.
+   ============================================================ */
 
-#clock-mode.panel-open .panel {
-  max-height: 60vh;
-  opacity: 1;
-  transform: translate(-50%, 0);
-  pointer-events: auto;
-}
-
-.panel-section {
-  margin-bottom: 1.2rem;
-}
-
-.panel-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.panel-list {
-  min-height: 4.2rem;
-  padding: 0.9rem 1.1rem;
-  position: relative;
-}
-
-.placeholder-row {
-  color: var(--fg-dim);
-  font-size: 0.95rem;
-}
-
-/* ---------- "+" add button ---------- */
-.add-btn {
-  position: absolute;
-  right: 5vw;
-  bottom: 4vh;
-  width: 2.8rem;
-  height: 2.8rem;
+.option-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.8rem;
-  font-weight: 300;
-  line-height: 1;
-  transition: transform 0.25s var(--ease-spring), background 0.25s;
-  z-index: 5;
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
-  border-radius: 50%;
+  flex-wrap: wrap; /* the theme row is nine chips wide */
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.option-row:last-child {
+  margin-bottom: 0;
+}
+
+.wallpaper-chip,
+.option-chip {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg-dim);
+  background: rgb(var(--fg-rgb) / 0.06);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  transition: transform 0.2s var(--ease-spring), background 0.2s, color 0.2s;
   -webkit-tap-highlight-color: transparent;
   outline: none;
 }
 
-.add-btn:active {
-  transform: scale(0.92);
+.wallpaper-chip:active,
+.option-chip:active {
+  transform: scale(0.94);
 }
 
-#clock-mode.panel-open .add-btn {
-  transform: rotate(45deg);
-}
-
-#clock-mode.panel-open .add-btn:active {
-  transform: rotate(45deg) scale(0.92);
-}
-
-
-/* ---------- Alarms / Timers panel ----------*/
-.panel-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.panel-add-toggle {
-  font-size: 0.85rem;
-  color: var(--fg-dim);
-  padding: 0.2rem 0.6rem;
-  border: 1px solid var(--border-soft);
-  border-radius: 999px;
-}
-
-.inline-form {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.35s var(--ease-smooth), opacity 0.3s;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.6rem;
-}
-
-.inline-form.open {
-  max-height: 16rem;
-  opacity: 1;
+.wallpaper-chip.selected,
+.option-chip.selected {
+  color: var(--fg);
+  background: rgb(var(--fg-rgb) / 0.16);
+  border-color: var(--border);
 }
 
 .form-input {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(var(--fg-rgb) / 0.06);
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   padding: 0.5rem 0.7rem;
@@ -341,86 +340,12 @@ body.mode-spotify .sleep-btn { display: flex; }
   font-size: 0.95rem;
 }
 
-.day-chip-row {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-.day-chip {
-  padding: 0.35rem 0.6rem;
-  font-size: 0.8rem;
-  color: var(--fg-dim);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-soft);
-  border-radius: 999px;
-}
-
-.day-chip.selected {
-  color: var(--fg);
-  background: rgba(255, 255, 255, 0.16);
-  border-color: var(--border);
-}
-
 .form-save-btn {
   align-self: flex-start;
   padding: 0.45rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgb(var(--fg-rgb) / 0.14);
   border: 1px solid var(--border);
   border-radius: 999px;
-}
-
-.alarm-row, .timer-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.6rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  gap: 0.8rem;
-}
-
-.alarm-info, .timer-info {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.alarm-time, .timer-countdown {
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.alarm-label, .timer-label {
-  color: var(--fg-dim);
-  font-size: 0.9rem;
-}
-
-.alarm-days {
-  color: var(--fg-dimmer);
-  font-size: 0.8rem;
-}
-
-.timer-progress-track {
-  flex: 1;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
-  margin: 0 0.5rem;
-}
-
-.timer-progress-fill {
-  height: 100%;
-  background: var(--fg);
-  transition: width 1s linear;
-}
-
-.row-delete-btn {
-  font-size: 1.2rem;
-  color: var(--fg-dimmer);
-  line-height: 1;
-  padding: 0 0.3rem;
 }

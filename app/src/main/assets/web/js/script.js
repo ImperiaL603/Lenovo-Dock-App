@@ -33,7 +33,8 @@ const addBtn = document.getElementById('add-btn');
 const alarmsListEl = document.getElementById('alarms-list');
 const timersListEl = document.getElementById('timers-list');
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; // index 0..6 -> Calendar.SUNDAY(1)..SATURDAY(7)
+// Indexed with day - 1, because native stores Calendar.SUNDAY(1)..SATURDAY(7).
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 let alarms = [];
 let timers = [];
@@ -65,6 +66,7 @@ function fmtCountdown(endEpochMillis) {
 }
 
 function renderAlarms() {
+  renderNextAlarm(); // before the early return — deleting the last alarm must clear it too
   if (!alarms.length) {
     alarmsListEl.innerHTML = '<div class="placeholder-row">No alarms set</div>';
     return;
@@ -74,14 +76,57 @@ function renderAlarms() {
       <div class="alarm-info">
         <span class="alarm-time">${fmtAlarmTime(a.hour, a.minute)}</span>
         ${a.label ? `<span class="alarm-label">${a.label}</span>` : ''}
-        ${a.days.length ? `<span class="alarm-days">${a.days.map(d => DAY_LABELS[d % 7]).join(' ')}</span>` : '<span class="alarm-days">Once</span>'}
+        ${a.days.length ? `<span class="alarm-days">${a.days.map(d => DAY_LABELS[d - 1]).join(' ')}</span>` : '<span class="alarm-days">Once</span>'}
       </div>
       <button class="row-delete-btn" data-delete-alarm="${a.id}" aria-label="Delete alarm">&times;</button>
     </div>
   `).join('');
 }
 
+// ---------- Next alarm, on the clock face ----------
+// nextTriggerMillis is computed natively by AlarmScheduler — the same number
+// AlarmManager was handed — so the face can't disagree with what will actually ring.
+const nextAlarmEl = document.getElementById('next-alarm');
+let nextAlarmHtml = null;
+
+const startOfDay = (ms) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+
+/** Alarms never schedule more than a week out, so a bare weekday can't be ambiguous. */
+function alarmDayLabel(ts) {
+  const days = Math.round((startOfDay(ts) - startOfDay(Date.now())) / 86400000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Tomorrow';
+  return DAYS[new Date(ts).getDay()];
+}
+
+function buildNextAlarm() {
+  const now = Date.now();
+  // Filtered rather than trusting the earliest outright: between an alarm ringing and
+  // native's push arriving, its fire time is momentarily in the past. Showing nothing
+  // for that instant beats showing a time that has already gone.
+  const next = alarms
+    .filter((a) => a.enabled !== false && a.nextTriggerMillis > now)
+    .sort((a, b) => a.nextTriggerMillis - b.nextTriggerMillis)[0];
+  if (!next) return '';
+  return `<span class="next-alarm-when">${alarmDayLabel(next.nextTriggerMillis)}</span>`
+    + `<span class="next-alarm-time">${fmtAlarmTime(next.hour, next.minute)}</span>`
+    + (next.label ? `<span class="next-alarm-label">${next.label}</span>` : '');
+}
+
+// Its own tick rather than a call from updateClock(): `alarms` is declared below that
+// function and would still be in its temporal dead zone at the first invocation.
+// Writes only on change, so the other 86399 ticks a day cost one string compare.
+function renderNextAlarm() {
+  const html = buildNextAlarm();
+  if (html === nextAlarmHtml) return;
+  nextAlarmHtml = html;
+  nextAlarmEl.innerHTML = html;
+}
+
+setInterval(renderNextAlarm, 1000);
+
 function renderTimers() {
+  renderNextTimer(); // before the early return — the last timer ending must clear it too
   if (!timers.length) {
     timersListEl.innerHTML = '<div class="placeholder-row">No timers running</div>';
     return;
@@ -98,6 +143,36 @@ function renderTimers() {
       <button class="row-delete-btn" data-cancel-timer="${t.id}" aria-label="Cancel timer">&times;</button>
     </div>`;
   }).join('');
+}
+
+// ---------- Running timer, on the clock face ----------
+// No interval of its own: TimerTicker pushes the running list every second while the
+// app is foregrounded, and that lands in renderTimers() above.
+const nextTimerEl = document.getElementById('next-timer');
+let nextTimerHtml = null;
+
+function buildNextTimer() {
+  const now = Date.now();
+  // running !== false because the initial listTimers() at boot returns every stored
+  // timer, while TimerTicker's pushes are already filtered to the running ones.
+  const live = timers
+    .filter((t) => t.running !== false && t.endEpochMillis > now)
+    .sort((a, b) => a.endEpochMillis - b.endEpochMillis);
+  if (!live.length) return '';
+  const rest = live.length - 1;
+  // Tagged "Timer" where the alarm line carries its day: without it an unlabelled
+  // timer would render as a bare "4:32" under a row of clock times.
+  return '<span class="next-timer-tag">Timer</span>'
+    + `<span class="next-timer-time">${fmtCountdown(live[0].endEpochMillis)}</span>`
+    + (live[0].label ? `<span class="next-timer-label">${live[0].label}</span>` : '')
+    + (rest ? `<span class="next-timer-more">+${rest} more</span>` : '');
+}
+
+function renderNextTimer() {
+  const html = buildNextTimer();
+  if (html === nextTimerHtml) return;
+  nextTimerHtml = html;
+  nextTimerEl.innerHTML = html;
 }
 
 alarmsListEl.addEventListener('click', (e) => {
@@ -127,7 +202,7 @@ const toggleTimerFormBtn = document.getElementById('toggle-timer-form');
 toggleAlarmFormBtn.addEventListener('click', () => newAlarmForm.classList.toggle('open'));
 toggleTimerFormBtn.addEventListener('click', () => newTimerForm.classList.toggle('open'));
 
-document.querySelectorAll('.day-chip').forEach(chip => {
+newAlarmForm.querySelectorAll('[data-day]').forEach(chip => {
   chip.addEventListener('click', () => {
     const day = parseInt(chip.getAttribute('data-day'), 10);
     if (newAlarmDays.has(day)) { newAlarmDays.delete(day); chip.classList.remove('selected'); }
@@ -147,7 +222,7 @@ document.getElementById('save-alarm-btn').addEventListener('click', () => {
   newAlarmForm.classList.remove('open');
   document.getElementById('new-alarm-label').value = '';
   newAlarmDays.clear();
-  document.querySelectorAll('.day-chip.selected').forEach(c => c.classList.remove('selected'));
+  newAlarmForm.querySelectorAll('[data-day]').forEach(c => c.classList.remove('selected'));
 });
 
 document.getElementById('save-timer-btn').addEventListener('click', () => {

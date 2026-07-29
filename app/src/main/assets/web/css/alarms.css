@@ -1,0 +1,223 @@
+/* ============================================================
+   ALARMS / TIMERS — the "+" button, its panel, the two creation
+   forms and the list rows.
+
+   Split out of style.css when that file passed its size limit, and shaped to
+   read as a sibling of settings.css: same panel geometry, same near-opaque
+   glass, same uppercase-dim section labels, and the chip primitive shared from
+   style.css rather than a second near-identical one of its own.
+   ============================================================ */
+
+/* ---------- "+" add button ---------- */
+.add-btn {
+  position: absolute;
+  right: 5vw;
+  bottom: 4vh;
+  width: 2.8rem;
+  height: 2.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 300;
+  line-height: 1;
+  transition: transform 0.25s var(--ease-spring), background 0.25s;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.add-btn:active {
+  transform: scale(0.92);
+}
+
+#clock-mode.panel-open .add-btn {
+  transform: rotate(45deg);
+}
+
+#clock-mode.panel-open .add-btn:active {
+  transform: rotate(45deg) scale(0.92);
+}
+
+/* ---------- Panel ---------- */
+/* Geometry deliberately identical to .settings-panel: the two open from opposite
+   bottom corners onto the same spot, so any difference reads as a mistake. */
+.panel {
+  position: absolute;
+  left: 50%;
+  bottom: 4vh;
+  transform: translate(-50%, 30px);
+  width: min(70vw, 850px);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height 0.5s var(--ease-smooth),
+              opacity 0.4s var(--ease-smooth),
+              transform 0.5s var(--ease-smooth);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.88);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+}
+
+#clock-mode.panel-open .panel {
+  max-height: 60vh;
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+  /* Both forms open at once can exceed the cap — scroll rather than clip the
+     lower section out of reach, as the settings panel does. */
+  overflow-y: auto;
+}
+
+.panel-section {
+  margin-bottom: 1.2rem;
+}
+
+.panel-section:last-child {
+  margin-bottom: 0;
+}
+
+.panel-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+/* Matches .settings-section-label rather than shouting at 1.1rem/700: these are
+   section headers inside a panel, the same rank as "Wallpaper" or "Appearance". */
+.panel-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--fg-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.panel-add-toggle {
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--fg-dim);
+  background: rgb(var(--fg-rgb) / 0.06);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  transition: transform 0.2s var(--ease-spring), background 0.2s, color 0.2s;
+}
+
+.panel-add-toggle:active {
+  transform: scale(0.94);
+  color: var(--fg);
+}
+
+/* No horizontal inset: nothing else in the panel is indented, and the rows used
+   to hang 1.1rem to the right of the header they belong to. */
+.panel-list {
+  min-height: 3rem;
+  position: relative;
+}
+
+.placeholder-row {
+  padding: 0.6rem 0;
+  color: var(--fg-dim);
+  font-size: 0.95rem;
+}
+
+/* ---------- Creation forms ---------- */
+/* Same max-height idiom as .collapsible, so every disclosure in the app behaves
+   identically whichever panel it is in. */
+.inline-form {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.35s var(--ease-smooth), opacity 0.3s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.inline-form.open {
+  max-height: 16rem;
+  opacity: 1;
+}
+
+/* The form's own inputs are narrow content, not full-width bars. */
+.inline-form .form-input {
+  align-self: flex-start;
+  width: min(100%, 16rem);
+}
+
+/* ---------- List rows ---------- */
+.alarm-row, .timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgb(var(--fg-rgb) / 0.08);
+  gap: 0.8rem;
+}
+
+.alarm-row:last-child, .timer-row:last-child {
+  border-bottom: none;
+}
+
+.alarm-info, .timer-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.alarm-time, .timer-countdown {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.alarm-label, .timer-label {
+  color: var(--fg-dim);
+  font-size: 0.9rem;
+}
+
+/* Matches .next-alarm-when — the same fact in both places, including its colour:
+   full --fg, after --fg-dimmer and --fg-dim were both reported unreadable. */
+.alarm-days {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.timer-progress-track {
+  flex: 1;
+  height: 4px;
+  background: rgb(var(--fg-rgb) / 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 0.5rem;
+}
+
+.timer-progress-fill {
+  height: 100%;
+  background: var(--fg);
+  transition: width 1s linear;
+}
+
+.row-delete-btn {
+  font-size: 1.2rem;
+  color: var(--fg-dimmer);
+  line-height: 1;
+  padding: 0 0.3rem;
+  transition: transform 0.2s var(--ease-spring), color 0.2s;
+}
+
+.row-delete-btn:active {
+  transform: scale(0.9);
+  color: var(--fg);
+}
