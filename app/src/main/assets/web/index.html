@@ -98,7 +98,16 @@
     Wallpaper
     <span class="section-chevron">&#9662;</span>
   </button>
-  <div class="wallpaper-grid collapsible" id="wallpaper-grid"></div>
+  <!-- Wrapped like Appearance and Display so the section can hold more than the
+       grid; the wrapper is what .settings-section-label toggles .open on. -->
+  <div class="collapsible wallpaper-section">
+    <div class="settings-subsection-label">Daily cycle</div>
+    <div class="option-row" id="wallpaper-cycle-row">
+      <button class="option-chip" data-cycle="off">Off</button>
+      <button class="option-chip" data-cycle="on">On</button>
+    </div>
+    <div class="wallpaper-grid" id="wallpaper-grid"></div>
+  </div>
 
   <button class="settings-section-label" aria-expanded="false">
     Appearance

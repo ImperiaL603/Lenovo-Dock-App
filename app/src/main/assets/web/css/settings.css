@@ -123,11 +123,14 @@ body.settings-open .settings-panel {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  -webkit-overflow-scrolling: touch;
 }
 
-.wallpaper-grid.open {
+/* 29 wallpapers overflow the 42vh cap every other section fits inside, so this is
+   the one section that scrolls. On the wrapper, not the grid — the wrapper is what
+   gets .open now that the toggle row shares the section with the chips. */
+.wallpaper-section.open {
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ---------- Appearance section ---------- */
