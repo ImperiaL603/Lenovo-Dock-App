@@ -268,6 +268,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function enterSpotify() {
     spotifyActive = true;
     document.body.classList.add('mode-spotify');
+    LenovoDock.onModeChanged(); // album colour is Spotify mode's; reads the class above
     renderModeButton();
     if (els['bg-video']) els['bg-video'].pause();
     // #spotify-mode is display:none until now, so anything measured before this
@@ -279,6 +280,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function exitToClock() {
     spotifyActive = false;
     document.body.classList.remove('mode-spotify');
+    LenovoDock.onModeChanged(); // hands the dock back to the selected theme
     renderModeButton();
     if (els['bg-video']) els['bg-video'].play().catch(() => {});
   }

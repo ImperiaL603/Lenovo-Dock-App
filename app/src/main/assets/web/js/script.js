@@ -242,7 +242,10 @@ document.getElementById('save-timer-btn').addEventListener('click', () => {
 window.LenovoDock = Object.assign(window.LenovoDock || {}, {
   onAlarmsChanged(list) { alarms = list; renderAlarms(); },
   onTimerTick(list) { timers = list; renderTimers(); },
-  onAlbumColour(rgb) { albumRgb = rgb; applyColourSource(); }
+  onAlbumColour(rgb) { albumRgb = rgb; applyColourSource(); },
+  // Called by spotify.js after it has changed body.mode-spotify, which is what
+  // inSpotifyMode() reads — hence after, not before.
+  onModeChanged() { applyColourSource(); }
 });
 
 // Initial load from native (in case onPageFinished's push races with script load)
@@ -322,9 +325,15 @@ const ACCENT_SHARE = 0.4; // themes.css blends 60% light text + 40% accent for -
 let albumOn = localStorage.getItem('album-colours') === 'on';
 let albumRgb = null;      // "r g b" from native, or null when there's no art
 
+// Read from the class spotify.js already sets rather than kept as a second copy of
+// "which mode are we in". Pausing does not end the media session, so the art URL
+// never changes and native has no reason to clear the colour — without this the
+// sleeve's hue would follow the dock back onto the clock and stay there.
+const inSpotifyMode = () => document.body.classList.contains('mode-spotify');
+
 function applyColourSource() {
   const root = document.documentElement;
-  if (albumOn && albumRgb) {
+  if (albumOn && albumRgb && inSpotifyMode()) {
     root.style.setProperty('--accent-rgb', albumRgb);
     root.style.setProperty('--fg-rgb', towardsWhite(albumRgb));
   } else {
