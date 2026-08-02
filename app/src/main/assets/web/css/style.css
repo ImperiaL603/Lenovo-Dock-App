@@ -285,6 +285,59 @@ body.mode-spotify .sleep-btn { display: flex; }
   transform: scale(0.94);
 }
 
+/* ---------- Lyrics sync nudge (Spotify mode only) ----------
+   Bottom-right, where .add-btn sits in clock mode and nothing does in this one.
+   Same pill, height and baseline as the gear and the sleep control. Only the
+   container carries the idle transition — the steps inside need their own
+   transform/colour ones, and transition is a single property. */
+.sync-btn {
+  position: absolute;
+  right: 5vw;
+  bottom: 4vh;
+  height: 2.8rem;
+  display: none;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0 0.4rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
+  z-index: 6;
+}
+
+/* Two conditions, one per owner: CSS knows the mode, renderSync() knows whether
+   the track has timed lyrics worth shifting. */
+body.mode-spotify .sync-btn.visible {
+  display: flex;
+}
+
+.sync-step {
+  width: 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fg-dim);
+  transition: transform 0.2s var(--ease-spring), color 0.2s;
+}
+
+.sync-step:active {
+  transform: scale(0.88);
+  color: var(--fg);
+}
+
+/* Fixed width: the value changes under your finger, and a reflow would slide the
+   buttons out from under it. */
+.sync-value {
+  min-width: 3.6rem;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--fg);
+}
+
 /* ============================================================
    SHARED CONTROLS
    The chip row, the chip and the two form widgets, used by both panels — the

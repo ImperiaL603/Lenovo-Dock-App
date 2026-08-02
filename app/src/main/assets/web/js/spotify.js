@@ -22,9 +22,13 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   // Shown during an ad break. Ads and lyric-less tracks both deliver an empty list,
   // so without this the dock reads as broken for 30 seconds twice an hour.
   const AD_MESSAGE = 'Spotify is Bullshit';
+  const SYNC_STEP_MS = 250;    // one tap of the nudge
+  const SYNC_LIMIT_MS = 5000;  // past this it is the wrong record, not a timing fault
+  const SYNC_KEY = 'lyric-offsets';
 
   let np = null;          // latest snapshot
   let recvAt = 0;         // performance.now() when it arrived
+  let syncOffsetMs = 0;   // this track's saved nudge, cached so lyricTick misses storage
   let spotifyActive = false;
   let graceTimer = null;
   let manualOverride = false; // a hand-picked mode, held until playback changes
@@ -46,7 +50,8 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function cacheEls() {
     ['spotify-mode', 'spotify-bg', 'album-art-img', 'song-name', 'artist-names',
      'playlist-name', 'progress-elapsed', 'progress-total', 'progress-fill', 'bg-video',
-     'lyrics-window', 'ctrl-prev', 'ctrl-playpause', 'ctrl-next', 'mode-btn']
+     'lyrics-window', 'ctrl-prev', 'ctrl-playpause', 'ctrl-next', 'mode-btn',
+     'sync-btn', 'sync-value']
       .forEach((id) => { els[id] = $(id); });
   }
 
@@ -59,6 +64,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     const key = `${data.title || ''}|${data.artist || ''}`;
     if (data.title && key !== lastTrackKey) {
       lastTrackKey = key;
+      syncOffsetMs = loadOffsets()[key] || 0;
       buildLyrics([]);
     }
     renderMeta(data);
@@ -167,6 +173,43 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     });
     els['lyrics-window'].appendChild(track);
     measure();
+    renderSync();
+  }
+
+  /* ---- per-track lyric sync ----
+     lrclib records are community uploads and some are simply timed wrong. The nudge
+     is stored against the track, not applied globally, because the fault belongs to
+     the record: a value that fixed one song would break the next. Keyed by
+     lastTrackKey so this file keeps one notion of "which track". */
+
+  function loadOffsets() {
+    try {
+      return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function nudgeSync(deltaMs) {
+    if (!lastTrackKey) return;
+    syncOffsetMs = Math.max(-SYNC_LIMIT_MS, Math.min(SYNC_LIMIT_MS, syncOffsetMs + deltaMs));
+    const all = loadOffsets();
+    // A track nudged back to zero drops its entry rather than storing a no-op, so
+    // the record holds only the songs actually found wanting.
+    if (syncOffsetMs === 0) delete all[lastTrackKey];
+    else all[lastTrackKey] = syncOffsetMs;
+    localStorage.setItem(SYNC_KEY, JSON.stringify(all));
+    renderSync();
+    lyricTick(); // land the change now instead of up to LYRIC_TICK_MS later
+  }
+
+  function renderSync() {
+    // Only timed lyrics have anything to shift: plain ones are scrolled by track
+    // progress, and a window showing a message has no timeline at all. Mode is CSS's
+    // half of this — see body.mode-spotify .sync-btn.visible.
+    els['sync-btn'].classList.toggle('visible', !plainMode && lyrics.length > 0);
+    const s = syncOffsetMs / 1000;
+    els['sync-value'].textContent = `${s > 0 ? '+' : ''}${s.toFixed(2)}s`;
   }
 
   // Sits in the window rather than the track: it must stay centred, and the
@@ -328,7 +371,10 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     return np.durationMs > 0 ? Math.min(np.durationMs, pos) : pos;
   }
 
-  const lyricPos = () => interpolatedPos() + LYRIC_OFFSET_MS;
+  // LYRIC_OFFSET_MS is the constant lead every track gets; syncOffsetMs is this one
+  // track's correction. Both add to the position, so a larger value shows the words
+  // sooner — which is why "+" is the fix when lyrics are running late.
+  const lyricPos = () => interpolatedPos() + LYRIC_OFFSET_MS + syncOffsetMs;
 
   function tick() {
     if (!spotifyActive || !np) return;
@@ -366,6 +412,11 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   // Wired separately from the transport buttons: this one is pure UI and works
   // with or without the native bridge.
   els['mode-btn'].addEventListener('click', toggleMode);
+  els['sync-btn'].addEventListener('click', (e) => {
+    // The attribute carries direction only, so the step size has one home.
+    const d = e.target.dataset.sync;
+    if (d) nudgeSync(Number(d) * SYNC_STEP_MS);
+  });
   renderModeButton();
   window.addEventListener('resize', remeasure);
   if (document.fonts) document.fonts.ready.then(remeasure);

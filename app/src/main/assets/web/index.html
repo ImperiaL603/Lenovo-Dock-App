@@ -195,6 +195,15 @@
 <!-- Sleep toggle: sits beside the gear, Spotify mode only. -->
 <button id="sleep-btn" class="sleep-btn">Sleep</button>
 
+<!-- Lyrics sync nudge. "+" brings the words forward (fixes lyrics running late),
+     "-" pushes them back. Shown only while the track has timed lyrics to shift —
+     see renderSync() in spotify.js. -->
+<div id="sync-btn" class="sync-btn">
+  <button class="sync-step" data-sync="-1" aria-label="Lyrics later">-</button>
+  <span class="sync-value" id="sync-value">0.00s</span>
+  <button class="sync-step" data-sync="1" aria-label="Lyrics earlier">+</button>
+</div>
+
 <!-- ===================== SPOTIFY ===================== -->
 <section id="spotify-mode">
   <img class="spotify-bg" id="spotify-bg" alt="" />
