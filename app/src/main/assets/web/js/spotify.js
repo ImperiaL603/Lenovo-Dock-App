@@ -423,5 +423,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   setInterval(tick, 1000);              // CSS bridges each beat with a 1s linear fill
   setInterval(lyricTick, LYRIC_TICK_MS);
 
-  return { onNowPlaying, onPlaybackGone, onLyrics };
+  // remeasure is exported for the Appearance size chips: changing them relays the
+  // lyrics column, and the cached line offsets are only valid until it does.
+  return { onNowPlaying, onPlaybackGone, onLyrics, remeasure };
 })());

@@ -271,13 +271,20 @@ document.querySelectorAll('.settings-section-label').forEach((label) => {
 });
 
 // ---------- Appearance sizes ----------
-// Scales whole modes: --clock-scale and --spotify-scale are read by transforms
-// on .clock-block, .spotify-layout, .progress-row and .spotify-controls.
-const SCALES = { small: 0.9, medium: 1, large: 1.1 };
+// --clock-scale scales the clock block by transform; --spotify-scale and
+// --lyric-scale are real lengths that spotify.css lays out from, so those two
+// reflow rather than zoom and cannot push anything off the panel.
+// Each row carries its own ladder: the lyrics run further and in finer steps
+// because they are the one thing read from across the room.
+const SCALES = {
+  clock: { small: 0.9, medium: 1, large: 1.1 },
+  spotify: { small: 0.9, medium: 1, large: 1.1 },
+  lyric: { small: 0.85, medium: 1, large: 1.15, xlarge: 1.3, max: 1.5 },
+};
 const DEFAULT_SIZE = 'medium';
 
 function applySize(mode, size) {
-  document.documentElement.style.setProperty(`--${mode}-scale`, SCALES[size]);
+  document.documentElement.style.setProperty(`--${mode}-scale`, SCALES[mode][size]);
   localStorage.setItem(`size-${mode}`, size);
   document.querySelectorAll(`.option-row[data-scale="${mode}"] .option-chip`)
     .forEach((chip) => chip.classList.toggle('selected', chip.dataset.size === size));
@@ -286,10 +293,19 @@ function applySize(mode, size) {
 document.querySelectorAll('.option-row[data-scale]').forEach((row) => {
   const mode = row.dataset.scale;
   const saved = localStorage.getItem(`size-${mode}`);
-  applySize(mode, SCALES[saved] ? saved : DEFAULT_SIZE);
+  applySize(mode, SCALES[mode][saved] ? saved : DEFAULT_SIZE);
   row.addEventListener('click', (e) => {
     const size = e.target.dataset.size;
-    if (size) applySize(mode, size);
+    if (!size) return;
+    applySize(mode, size);
+    // Both spotify sizes move the lyric column's width or its type, and the scroll
+    // position is measured from line offsets — re-read them, or the next tick
+    // scrolls to where a line used to be. Called for every row rather than just
+    // the two that matter: measuring while #spotify-mode is hidden reads zeros,
+    // which is the same state buildLyrics() already leaves behind when a track
+    // arrives during clock mode, and enterSpotify() re-measures out of it either
+    // way. spotify.js has loaded by the time anything here can be tapped.
+    LenovoDock.remeasure();
   });
 });
 

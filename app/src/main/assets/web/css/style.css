@@ -28,6 +28,9 @@
      both this file and spotify.css scale off the same value. */
   --clock-scale: 1;
   --spotify-scale: 1;
+  /* Separate from --spotify-scale: the lyrics are read from across the room while
+     the album art is not, so they need their own ladder and a longer one. */
+  --lyric-scale: 1;
 
   /* Chromium draws <input type="time"/"number"> and scrollbars from this. Without
      it the alarm form's native time spinner renders as a light widget in the
