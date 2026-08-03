@@ -37,6 +37,14 @@ class MediaBridge(private val context: Context) {
     @JavascriptInterface
     fun skipToPrevious() = NowPlayingRepository.skipToPrevious()
 
+    /** Ad muting. Native owns the state — MediaListenerService acts on it with no
+     *  page attached — so the panel reads it back rather than storing its own. */
+    @JavascriptInterface
+    fun setAdMute(on: Boolean) = AdMuter.setEnabled(context, on)
+
+    @JavascriptInterface
+    fun adMuteEnabled(): Boolean = AdMuter.isEnabled(context)
+
     /** file:// base URL of the on-device wallpapers folder, with trailing slash. */
     @JavascriptInterface
     fun wallpapersBaseUrl(): String = "file://${wallpapersDir().absolutePath}/"

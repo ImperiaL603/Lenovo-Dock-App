@@ -417,3 +417,26 @@ dimfloorRow.addEventListener('click', (e) => {
   const f = e.target.dataset.floor;
   if (f) applyAutoDim(dimOn, f);
 });
+
+// ---------- Audio: mute during ads ----------
+// The one setting with no localStorage behind it. MediaListenerService acts on it
+// with no page attached, so native is the only sensible owner; the chips are
+// rendered from what native reports and write straight back to it.
+const admuteRow = document.getElementById('admute-row');
+
+function renderAdMute(on) {
+  admuteRow.querySelectorAll('.option-chip')
+    .forEach((chip) => chip.classList.toggle('selected', (chip.dataset.admute === 'on') === on));
+}
+
+// Render only — writing the value we just read back to native would be a no-op
+// round trip, and on the no-bridge path there is nothing to write to.
+renderAdMute(typeof AndroidMedia !== 'undefined' && AndroidMedia.adMuteEnabled());
+
+admuteRow.addEventListener('click', (e) => {
+  const v = e.target.dataset.admute;
+  if (!v) return;
+  const on = v === 'on';
+  renderAdMute(on);
+  if (typeof AndroidMedia !== 'undefined') AndroidMedia.setAdMute(on);
+});

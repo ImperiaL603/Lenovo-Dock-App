@@ -182,6 +182,22 @@
   </div>
 
   <button class="settings-section-label" aria-expanded="false">
+    Audio
+    <span class="section-chevron">&#9662;</span>
+  </button>
+  <div class="collapsible">
+    <!-- Silences the music stream for the length of a Spotify ad break. State is
+         held natively — MediaListenerService acts on it whether or not this page
+         exists — so these chips are rendered from what native reports, not from
+         localStorage. -->
+    <div class="settings-subsection-label">Mute ads</div>
+    <div class="option-row" id="admute-row">
+      <button class="option-chip" data-admute="off">Off</button>
+      <button class="option-chip" data-admute="on">On</button>
+    </div>
+  </div>
+
+  <button class="settings-section-label" aria-expanded="false">
     Sleep
     <span class="section-chevron">&#9662;</span>
   </button>

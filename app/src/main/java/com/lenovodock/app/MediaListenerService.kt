@@ -74,6 +74,9 @@ class MediaListenerService : NotificationListenerService() {
         logSnapshot(np)
         np?.let(LyricsRepository::onTrack)
         ArtPalette.onArt(np?.art)
+        // Takes the null too: a vanished session has to release the mute, so this
+        // cannot sit inside the let above.
+        AdMuter.onNowPlaying(this, np)
     }
 
     /**
