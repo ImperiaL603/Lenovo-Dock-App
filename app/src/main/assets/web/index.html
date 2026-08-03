@@ -12,6 +12,9 @@
 
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/themes.css" />
+<!-- Before alarms/settings: it holds the panel surface both of them share, and
+     each of those files still overrides its own specifics on top. -->
+<link rel="stylesheet" href="css/panels.css" />
 <link rel="stylesheet" href="css/alarms.css" />
 <link rel="stylesheet" href="css/settings.css" />
 <link rel="stylesheet" href="css/spotify.css" />
@@ -25,15 +28,17 @@
   <!-- ===================== CLOCK ===================== -->
   <section id="clock-mode">
 
+    <!-- Day, TIME, then date. The time used to sit third and at the same size as
+         the date, so the one thing you glance at was the least emphasised on the
+         screen. It now sits directly under the day — the two things read together —
+         with the date demoted to quiet context beneath. -->
     <div class="clock-block" id="clock-block">
       <div class="clock-day" id="clock-day">Thursday</div>
-      <div class="clock-date" id="clock-date">17 July 2026</div>
       <div class="clock-time">
-        <span class="dash">-</span>
         <span class="clock-hm" id="clock-hm">2:36</span>
         <span class="clock-ampm" id="clock-ampm">AM</span>
-        <span class="dash">-</span>
       </div>
+      <div class="clock-date" id="clock-date">17 July 2026</div>
       <!-- Below the time rather than between date and time: day/date/time read as
            one stack, and these are subordinate to all three. Filled by script.js;
            left empty when nothing is scheduled or running, which :empty hides. -->
@@ -239,11 +244,15 @@
 
   </div>
 
+  <!-- Centred on the screen rather than inside the player column. Siblings of
+       .spotify-layout, so they are positioned against #spotify-mode. -->
   <div class="progress-row" id="progress-row">
-     <span class="progress-time" id="progress-elapsed">0:00</span>
-     <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
-     <span class="progress-time" id="progress-total">0:00</span>
-   </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-times">
+      <span class="progress-time" id="progress-elapsed">0:00</span>
+      <span class="progress-time" id="progress-total">0:00</span>
+    </div>
+  </div>
 
   <div class="spotify-controls" id="spotify-controls">
     <button class="ctrl-btn" id="ctrl-prev" aria-label="Previous">&#9198;</button>

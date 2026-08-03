@@ -24,6 +24,13 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 
+  /* Every piece of type in this app sits over a photograph, a video or blurred
+     album art, so all of it needs the same separation. One halo rather than the
+     three near-identical hand-written shadows this file used to carry: a tight
+     shadow for legibility, a wide faint one so letters sit IN the image rather
+     than on top of it. */
+  --text-halo: 0 2px 10px rgba(0, 0, 0, 0.85), 0 0 28px rgba(0, 0, 0, 0.5);
+
   /* Appearance sizes. Set on :root by script.js from the saved preference, so
      both this file and spotify.css scale off the same value. */
   --clock-scale: 1;
@@ -101,6 +108,29 @@ button {
   justify-content: center;
 }
 
+/* A flat, full-bleed scrim over the wallpaper. Flat on purpose — a vignette or any
+   shaped falloff has a centre the eye finds, and a bright sky behind white type is
+   exactly where the clock is hardest to read. Absolutely positioned so it does not
+   become a flex item and push the clock block off-centre. */
+#clock-mode::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.26);
+  pointer-events: none;
+}
+
+/* Lifted above the scrim explicitly. .clock-block would very likely paint above it
+   anyway — its transform makes it paint in the positioned phase, and it comes later
+   in tree order — but that is a subtle rule to be relying on for whether the clock
+   is visible. .panel and .add-btn need nothing: both are already absolute and later
+   in tree order, and alarms.css loads after this file so anything set here would be
+   overridden by their own position anyway. */
+.clock-block {
+  position: relative;
+  z-index: 1;
+}
+
 /* Every rule that sets .clock-block's transform must carry the scale too — a
    transform is one property, so a later translateY() would drop the scale. */
 .clock-block {
@@ -114,50 +144,59 @@ button {
   transform: translateY(-14vh) scale(var(--clock-scale));
 }
 
+/* Three distinct steps, where there used to be two: the day, then the time, then
+   the date. Day and time are close in weight because together they are the glance;
+   the date is deliberately far quieter — it is the one line you never actually
+   need, and shrinking it is what lets the other two breathe. */
 .clock-day {
   font-family: var(--font-day);
-  font-size: clamp(3.8rem, 9.5vw, 7.2rem);
+  font-size: clamp(3.4rem, 8.5vw, 6.4rem);
   letter-spacing: 0.05em;
   font-weight: 400;
   line-height: 1;
   text-transform: uppercase;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
-}
-.clock-date {
-  font-family: var(--font-body);
-  font-size: clamp(2rem, 4vw, 3.4rem);
-  font-weight: 500;
-  color: var(--fg);
-  margin-top: 0.6rem;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 3px 30px rgba(0, 0, 0, 0.7);
+  text-shadow: var(--text-halo);
 }
 
 .clock-time {
-  margin-top: 0.6rem;
+  margin-top: 0.4rem;
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   font-family: var(--font-body);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 3px 30px rgba(0, 0, 0, 0.7);
-}
-
-.clock-time .dash {
-  font-size: clamp(2rem, 4vw, 3.4rem);
-  color: var(--fg);
-  font-weight: 300;
+  /* Tabular figures: without them the digits are proportional, so the whole line
+     shifts sideways every time a 1 ticks over to a 2. */
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--text-halo);
 }
 
 .clock-hm {
-  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-size: clamp(3rem, 7vw, 5.4rem);
   font-weight: 600;
   line-height: 1;
+  letter-spacing: -0.015em;
 }
 
+/* Set beside the hour rather than matched to it — an AM/PM at full size competes
+   with the number it qualifies. Full --fg though: size and letter-spacing are what
+   hold it back, never opacity. Dimming it made it disappear at dock distance. */
 .clock-ampm {
-  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-size: clamp(1.1rem, 2.2vw, 1.7rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--fg);
+}
+
+.clock-date {
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 1.9vw, 1.45rem);
   font-weight: 500;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg);
+  margin-top: 0.9rem;
+  text-shadow: var(--text-halo);
 }
 
 /* ---------- Next alarm / running timer ----------
@@ -174,7 +213,7 @@ button {
   margin-top: 0.9rem;
   font-size: clamp(0.95rem, 1.7vw, 1.35rem);
   color: var(--fg-dim);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 3px 30px rgba(0, 0, 0, 0.7);
+  text-shadow: var(--text-halo);
 }
 
 .next-alarm:empty,
@@ -237,10 +276,8 @@ button {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--fg-dim);
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--border-soft);
+  /* Surface comes from panels.css — shared with the other four floating buttons. */
   border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
   transition: transform 0.25s var(--ease-spring), color 0.25s,
     opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
   z-index: 6;
@@ -267,11 +304,9 @@ button {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--fg-dimmer);
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--border-soft);
+  color: var(--fg-dim);
+  /* Surface comes from panels.css — shared with the other four floating buttons. */
   border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
   transition: transform 0.25s var(--ease-spring), color 0.25s, border-color 0.25s,
     opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
   z-index: 6;
@@ -302,10 +337,8 @@ body.mode-spotify .sleep-btn { display: flex; }
   align-items: center;
   gap: 0.2rem;
   padding: 0 0.4rem;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--border-soft);
+  /* Surface comes from panels.css — shared with the other four floating buttons. */
   border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
   transition: opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
   z-index: 6;
 }

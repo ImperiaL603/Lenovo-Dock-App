@@ -23,8 +23,7 @@
   line-height: 1;
   transition: transform 0.25s var(--ease-spring), background 0.25s;
   z-index: 5;
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  /* Surface comes from panels.css — shared with the other four floating buttons. */
   border-radius: 50%;
   -webkit-tap-highlight-color: transparent;
   outline: none;
@@ -42,61 +41,16 @@
   transform: rotate(45deg) scale(0.92);
 }
 
-/* ---------- Panel ---------- */
-/* Geometry deliberately identical to .settings-panel: the two open from opposite
-   bottom corners onto the same spot, so any difference reads as a mistake. */
-.panel {
-  position: absolute;
-  left: 50%;
-  bottom: 4vh;
-  transform: translate(-50%, 30px);
-  width: min(70vw, 850px);
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-  transition: max-height 0.5s var(--ease-smooth),
-              opacity 0.4s var(--ease-smooth),
-              transform 0.5s var(--ease-smooth);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
-  background: rgba(0, 0, 0, 0.88);
-  border-radius: 12px;
-  padding: 1.2rem 1.5rem;
-}
-
-#clock-mode.panel-open .panel {
-  max-height: 60vh;
-  opacity: 1;
-  transform: translate(-50%, 0);
-  pointer-events: auto;
-  /* Both forms open at once can exceed the cap — scroll rather than clip the
-     lower section out of reach, as the settings panel does. */
-  overflow-y: auto;
-}
+/* The panel surface, its open state, the section header row, the section title
+   type and the empty-state row all live in panels.css now — shared verbatim with
+   the settings panel. What follows is only what is specific to alarms and timers. */
 
 .panel-section {
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
 }
 
 .panel-section:last-child {
   margin-bottom: 0;
-}
-
-.panel-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.6rem;
-}
-
-/* Matches .settings-section-label rather than shouting at 1.1rem/700: these are
-   section headers inside a panel, the same rank as "Wallpaper" or "Appearance". */
-.panel-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--fg-dim);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .panel-add-toggle {
@@ -116,16 +70,10 @@
 }
 
 /* No horizontal inset: nothing else in the panel is indented, and the rows used
-   to hang 1.1rem to the right of the header they belong to. */
+   to hang 1.1rem to the right of the header they belong to. The 3rem min-height
+   is gone — it padded every empty list to the height of a populated one. */
 .panel-list {
-  min-height: 3rem;
   position: relative;
-}
-
-.placeholder-row {
-  padding: 0.6rem 0;
-  color: var(--fg-dim);
-  font-size: 0.95rem;
 }
 
 /* ---------- Creation forms ---------- */

@@ -19,8 +19,7 @@
   transition: transform 0.25s var(--ease-spring), background 0.25s,
     opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
   z-index: 5;
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  /* Surface comes from panels.css — shared with the other four floating buttons. */
   border-radius: 50%;
   -webkit-tap-highlight-color: transparent;
   outline: none;
@@ -42,66 +41,18 @@ body.settings-open .settings-btn:active {
   transform: rotate(45deg) scale(0.92);
 }
 
-/* ---------- Settings panel ---------- */
-.settings-panel {
-  position: absolute;
-  left: 50%;
-  bottom: 4vh;
-  transform: translate(-50%, 30px);
-  width: min(70vw, 850px);
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-  transition: max-height 0.5s var(--ease-smooth),
-              opacity 0.4s var(--ease-smooth),
-              transform 0.5s var(--ease-smooth);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
-  /* Near-opaque because in Spotify mode this sits directly over the lyrics,
-     progress bar and transport controls rather than over a wallpaper. */
-  background: rgba(0, 0, 0, 0.88);
-  border-radius: 12px;
-  padding: 1.2rem 1.5rem;
-  /* Above #spotify-mode (z-index 1), or the blurred album art paints over it. */
-  z-index: 5;
-}
+/* The panel surface, its open state, the section rows and the chevron all live in
+   panels.css now — shared verbatim with the alarms panel. What follows is only
+   what is specific to settings. */
 
-body.settings-open .settings-panel {
-  max-height: 60vh;
-  opacity: 1;
-  transform: translate(-50%, 0);
-  pointer-events: auto;
-  /* Both sections expanded can exceed the cap — scroll rather than clip the
-     lower section out of reach. */
-  overflow-y: auto;
-}
-
+/* The one piece of sentence-case type in the panel. That alone separates it from
+   the uppercase headings below without needing to be much larger — which is what
+   keeps a settings panel from looking like a poster. */
 .settings-panel-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
-}
-
-/* Doubles as the collapse toggle for the section beneath it. */
-.settings-section-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-top: 1rem;
-  margin-bottom: 0.6rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--fg-dim);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.section-chevron {
-  transition: transform 0.35s var(--ease-smooth);
-}
-
-.settings-section-label[aria-expanded="true"] .section-chevron {
-  transform: rotate(180deg);
+  letter-spacing: 0.01em;
+  color: var(--fg);
 }
 
 /* Every settings section collapses the same way. Collapsed by default — 29
@@ -133,14 +84,26 @@ body.settings-open .settings-panel {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ---------- Appearance section ---------- */
+/* ---------- Appearance section ----------
+   One rank below .settings-section-label, and with no rules in the panel any more
+   the difference has to be legible on its own. Three things separate them: it is
+   smaller, it is tracked far tighter (0.05em against 0.16em), and it is toned down
+   to --fg-dim. Was --fg-dimmer at 0.28, which this project has repeatedly found to
+   be effectively invisible on this panel. */
 .settings-subsection-label {
+  margin-top: 1rem;
   margin-bottom: 0.45rem;
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--fg-dimmer);
-  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* The first subsection sits directly under its section heading, which has already
+   provided the gap. */
+.collapsible > .settings-subsection-label:first-child {
+  margin-top: 0;
 }
 
 /* Free-text alternative to a chip row. Reuses .form-input / .form-save-btn from

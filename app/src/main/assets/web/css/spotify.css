@@ -16,6 +16,9 @@
      Deliberately NOT em: an em length resolves against the element's OWN
      font-size, so any rule that sets both (.ctrl-btn does) would scale twice. */
   --su: calc(1rem * var(--spotify-scale));
+  /* One source of truth for the lyric type size, shared by the lines and the
+     no-lyrics message. */
+  --lyric-font: calc(clamp(1.9rem, 3vw, 2.9rem) * var(--lyric-scale));
 }
 body.mode-spotify #spotify-mode { display: block; }
 
@@ -39,14 +42,28 @@ body.mode-spotify .bg-video { opacity: 0; }
 }
 #spotify-mode.has-art .spotify-bg { opacity: 1; }
 
+/* Graded rather than flat. The lyrics need far more separation from the backdrop
+   than the sleeve does, so the darkening is weighted to the right — deeper under
+   the words, LIGHTER than before over the album art, which now reads richer than
+   it did at a flat 0.4.
+
+   The ramp runs 22%→62%, a long soft crossfade landing in the gap between the two
+   columns, and the whole thing is full-bleed. Nothing has an edge, so there is no
+   object to notice: it reads as lighting, not as a panel. */
 #spotify-mode::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: linear-gradient(to right,
+      rgba(0, 0, 0, 0.26) 0%,
+      rgba(0, 0, 0, 0.30) 22%,
+      rgba(0, 0, 0, 0.62) 62%,
+      rgba(0, 0, 0, 0.66) 100%);
 }
 
-/* ---- two-column layout ---- */
+/* ---- two-column layout ----
+   Lifted so the columns clear the progress row and transport below them: those
+   reach roughly 15vh up from the bottom edge. */
 .spotify-layout {
   position: relative;
   z-index: 1;
@@ -72,12 +89,15 @@ body.mode-spotify .bg-video { opacity: 0; }
   width: calc(min(26vw, 340px) * var(--spotify-scale));
 }
 
+/* The sleeve is the one solid object on this screen, so it carries the only real
+   elevation — a long, soft shadow that reads as depth rather than as a border. */
 .album-art-box {
   position: relative;
   aspect-ratio: 1 / 1;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(var(--fg-rgb) / 0.06);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
 #album-art-img {
@@ -103,17 +123,26 @@ body.mode-spotify .bg-video { opacity: 0; }
 }
 #spotify-mode.has-art .album-art-placeholder { display: none; }
 
+/* Same halo as the lyrics — this column sits over the lightest part of the grade,
+   so it needs the separation more than its position suggests. Title and artist are
+   separated by WEIGHT and TONE rather than by size: at two sizes plus two weights
+   the pair started to read as two unrelated lines instead of one credit. */
 .song-name {
-  margin-top: calc(1.35 * var(--su));
-  font-size: calc(2 * var(--su));
+  margin-top: calc(1.4 * var(--su));
+  font-size: calc(1.5 * var(--su));
   font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   color: var(--fg);
+  text-shadow: var(--text-halo);
 }
 .artist-names {
-  margin-top: calc(0.25 * var(--su));
-  font-size: calc(1.6 * var(--su));
+  margin-top: calc(0.15 * var(--su));
+  font-size: calc(1.1 * var(--su));
   font-weight: 500;
-  color: var(--fg);
+  line-height: 1.3;
+  color: var(--fg-dim);
+  text-shadow: var(--text-halo);
 }
 
 /* ---- lyrics column ----
@@ -132,6 +161,7 @@ body.mode-spotify .bg-video { opacity: 0; }
 .playlist-name {
   font-size: calc(1.6 * var(--su));
   color: var(--fg);
+  text-shadow: var(--text-halo);
   text-align: center;
   opacity: 0;
   transition: opacity 0.4s var(--ease-smooth);
@@ -150,7 +180,8 @@ body.mode-spotify .bg-video { opacity: 0; }
    distance from the active one (set per line by JS, clamped to 3). */
 .lyrics-window {
   position: relative;
-  height: 56vh;
+  /* Clears the progress row and transport, which occupy the bottom ~15vh again. */
+  height: 60vh;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(to bottom,
       transparent 0%, #000 20%, #000 80%, transparent 100%);
@@ -158,6 +189,24 @@ body.mode-spotify .bg-video { opacity: 0; }
       transparent 0%, #000 20%, #000 80%, transparent 100%);
 }
 
+/* Readability backdrop. A pale sleeve — white art worst of all — leaves the
+   blurred background bright, and with album colours on --fg-rgb is pulled toward
+   that same brightness, so the words end up light-on-light. This lays a pool of
+   shade under the middle of the window to put contrast back.
+
+   A ::before rather than a real element because buildLyrics() clears the window's
+   innerHTML on every track change; generated content survives that, markup would
+   not. It paints behind .lyrics-track without needing a z-index: both are
+   position:absolute at z-index auto, so paint order follows DOM order, and
+   generated content comes first.
+
+   Anchored to the window's centre rather than to the active line, because the
+   scroll always parks the active line exactly there — so this needs no JS and
+   has nothing to drift out of sync with. It backs the dimmed neighbours too,
+   which have the same contrast problem at lower opacity.
+
+   The window's mask-image fades this at top and bottom along with everything
+   else, which softens the vertical ends for free. */
 .lyrics-track {
   position: absolute;
   left: 0;
@@ -178,19 +227,21 @@ body.mode-spotify .bg-video { opacity: 0; }
 
 .lyrics-track.is-plain .lyric-line { opacity: 0.78; }
 
-/* --lyric-scale is the ONLY thing that sets the lyric size; everything else here
-   is expressed in em against it, so the leading, the interlude dots and the gaps
-   between lines all grow with the words. Lines stay in normal flow, so a line that
-   no longer fits wraps and pushes its neighbours apart instead of overlapping —
-   which is why the size can be pushed this far without the column breaking. */
+/* --lyric-font (from --lyric-scale) is the ONLY thing that sets the lyric size;
+   everything else here is expressed in em against it, so the leading, the
+   interlude dots and the gaps between lines all grow with the words. Lines stay
+   in normal flow, so a line that no longer fits wraps and pushes its neighbours
+   apart instead of overlapping — which is why the size can be pushed this far
+   without the column breaking. */
 .lyric-line {
   --d: 0;
   margin: 0.23em 0;
   text-align: center;
-  font-size: calc(clamp(1.9rem, 3vw, 2.9rem) * var(--lyric-scale));
+  font-size: var(--lyric-font);
   font-weight: 600;
   line-height: 1.24;
   color: var(--fg);
+  text-shadow: var(--text-halo);
   opacity: calc(1 - var(--d) * 0.26);
   /* scale(), not font-size — font-size would reflow every frame and shift the
      very line offsets the scroll position is measured from. */
@@ -206,9 +257,13 @@ body.mode-spotify .bg-video { opacity: 0; }
   opacity: 1;
   transform: scale(1.08);
   filter: blur(0);
-  /* The theme's accent, not the text colour — this is the one place a theme
-     shows as colour rather than as a tint. */
-  text-shadow: 0 0 22px rgb(var(--accent-rgb) / 0.45),
+  /* Keeps the halo and adds the theme's accent around it — this is the one place a
+     theme shows as colour rather than as a tint. The halo is listed FIRST because
+     text-shadow paints in reverse order, so it lands nearest the glyph and the
+     accent blooms outside it; swapped, the glow would wash out the contrast the
+     halo exists to provide. */
+  text-shadow: var(--text-halo),
+               0 0 22px rgb(var(--accent-rgb) / 0.45),
                0 0 55px rgb(var(--accent-rgb) / 0.18);
 }
 
@@ -250,9 +305,10 @@ body.mode-spotify .bg-video { opacity: 0; }
   right: 0;
   transform: translateY(-50%);
   text-align: center;
-  font-size: calc(clamp(1.9rem, 3vw, 2.9rem) * var(--lyric-scale));
+  font-size: var(--lyric-font);
   font-weight: 500;
   color: var(--fg);
+  text-shadow: var(--text-halo);
   opacity: 0.4;
 }
 
@@ -281,32 +337,49 @@ body.mode-spotify .bg-video { opacity: 0; }
   max-width: 40vw;
 }
 
-/* ---- progress bar (centered, bottom of screen) ---- */
+/* ---- progress ----
+   Centred on the screen, under both columns. The times sit BELOW the track at its
+   two ends rather than flanking it — flanking labels eat into the bar's width and
+   break the line, and at this width the ends are far enough apart to read as a
+   pair of endpoints rather than as a gap. */
 .progress-row {
-  display: flex;
-  align-items: center;
-  gap: calc(0.7 * var(--su));
   position: absolute;
   left: 50%;
-  /* Clears .spotify-controls below it: those sit at bottom 2vh and are 3.6su tall,
-     so at the largest size they reach ~10vh. */
-  bottom: 12vh;
+  bottom: 11.5vh;
   transform: translateX(-50%);
-  /* Reaches 88vw at the largest size, so there is always margin left at the edges. */
-  width: calc(min(80vw, 1200px) * var(--spotify-scale));
+  /* Sized off the LARGEST setting, which is what sets the ceiling: at scale 1.1 this
+     leaves ~4.9vw of margin each side, landing level with the 5vw the gear and sync
+     pills sit on. At the default size it comes out at ~9vw a side. Going wider would
+     have the bar overhang those buttons at Large. */
+  width: calc(min(82vw, 1100px) * var(--spotify-scale));
   z-index: 1;
 }
-.progress-time {
-  font-size: calc(1.1 * var(--su));
-  color: var(--fg-dim);
-  font-variant-numeric: tabular-nums;
+.progress-times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: calc(0.6 * var(--su));
 }
+/* Full --fg, not --fg-dim. This is a dock read from across a room: small type here
+   needs the alpha body copy gets, and the size is what keeps it subordinate. The
+   same mistake was made twice before on the clock face's alarm labels. */
+.progress-time {
+  font-size: calc(1.2 * var(--su));
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--text-halo);
+}
+/* Scales with the size setting instead of sitting at a fixed hairline — a 3px rule
+   is invisible at dock distance no matter what colour it is. The drop-shadow is the
+   bar's equivalent of --text-halo: it keeps the line readable when a pale album
+   sleeve puts a bright backdrop behind it. */
 .progress-track {
-  flex: 1;
-  height: 4px;
-  background: var(--fg-dimmer);
-  border-radius: 2px;
+  height: calc(0.35 * var(--su));
+  background: rgb(var(--fg-rgb) / 0.3);
+  border-radius: 999px;
   overflow: hidden;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55));
 }
 .progress-fill {
   width: 0;
@@ -315,35 +388,50 @@ body.mode-spotify .bg-video { opacity: 0; }
   transition: width 1s linear;
 }
 
-/* ---- transport controls (below progress bar, styled like settings/add buttons) ---- */
+/* ---- transport ----
+   Sits under the progress it belongs to. The dark discs are gone: they were there
+   to separate the buttons from a wallpaper they floated over, and inside a composed
+   column they only added three heavy blobs. Glyphs alone, with the halo every other
+   piece of type on this screen carries. Play/pause is the one emphasis — it is the
+   button you actually reach for. */
 .spotify-controls {
   position: absolute;
   left: 50%;
-  bottom: 2vh;
+  bottom: 2.5vh;
   transform: translateX(-50%);
-  display: flex;
-  gap: calc(1.2 * var(--su));
-  z-index: 1;
-}
-.ctrl-btn {
-  width: calc(3.6 * var(--su));
-  height: calc(3.6 * var(--su));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(1.9 * var(--su));
+  gap: calc(1.6 * var(--su));
+  z-index: 1;
+}
+.ctrl-btn {
+  width: calc(2.6 * var(--su));
+  height: calc(2.6 * var(--su));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(1.35 * var(--su));
   font-weight: 200;
   line-height: 1;
-  color: var(--fg);
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  /* Same reasoning as .progress-time — --fg-dim's 0.55 is not enough at distance.
+     Prev/next stay a step behind play/pause by tone, but not a whole 45% behind. */
+  color: rgb(var(--fg-rgb) / 0.78);
+  text-shadow: var(--text-halo);
   border-radius: 50%;
   -webkit-tap-highlight-color: transparent;
   outline: none;
-  transition: transform 0.25s var(--ease-spring), background 0.25s;
+  transition: transform 0.25s var(--ease-spring), color 0.25s;
+}
+#ctrl-playpause {
+  width: calc(3.2 * var(--su));
+  height: calc(3.2 * var(--su));
+  font-size: calc(1.6 * var(--su));
+  color: var(--fg);
 }
 .ctrl-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
+  color: var(--fg);
 }
 
 /* Pause bars, drawn rather than typed — see renderPlayState() in spotify.js for

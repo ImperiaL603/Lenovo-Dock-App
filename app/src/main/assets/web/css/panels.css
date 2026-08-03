@@ -1,0 +1,174 @@
+/* ============================================================
+   CHROME SURFACES — the material every floating element in the dock is made of:
+   both panels, and the five floating buttons.
+
+   These two panels open from opposite bottom corners onto the same spot, and
+   their geometry was previously written out twice, identically, in settings.css
+   and alarms.css — fourteen duplicated declarations whose own comments said they
+   must not drift. They live here once instead.
+
+   Loaded after style.css (whose tokens this uses) and before alarms.css and
+   settings.css, so each panel can still override its own specifics.
+   ============================================================ */
+
+/* ---------- The surface ----------
+   Frosted glass rather than a flat slab. A near-opaque black rectangle over a
+   bright wallpaper reads as a hole punched in the screen; letting the colour
+   behind bleed through a heavy blur is what makes a panel feel like it belongs
+   to what it is covering.
+
+   Lifted clear of the bottom row of buttons. Both panels used to sit at the same
+   bottom:4vh as the gear, the "+" and the sleep pill, so the panel corners and
+   those buttons overlapped. The panel now starts above them and the buttons read
+   as their own row. */
+.panel,
+.settings-panel {
+  position: absolute;
+  left: 50%;
+  bottom: calc(4vh + 3.9rem);
+  transform: translate(-50%, 30px);
+  /* Narrower than the old 850px. The content is a short list of labels; at the
+     old width every row was a scrap of text marooned in empty space. */
+  width: min(58vw, 720px);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height 0.5s var(--ease-smooth),
+              opacity 0.4s var(--ease-smooth),
+              transform 0.5s var(--ease-smooth);
+  /* Opaque by default; the glass below is an enhancement, so a WebView without
+     backdrop-filter still gets a readable panel rather than a see-through one. */
+  background: rgba(10, 10, 12, 0.9);
+  border: 1px solid rgb(var(--fg-rgb) / 0.1);
+  border-radius: 18px;
+  padding: 1.4rem 1.5rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.4);
+  /* Above #spotify-mode (z-index 1), or the blurred album art paints over it. */
+  z-index: 5;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .panel,
+  .settings-panel {
+    background: rgba(10, 10, 12, 0.62);
+    /* saturate lifts the colour the blur would otherwise wash out, which is what
+       stops frosted glass looking like grey plastic. */
+    -webkit-backdrop-filter: blur(30px) saturate(1.6);
+    backdrop-filter: blur(30px) saturate(1.6);
+  }
+}
+
+/* Open state is identical for both; only the trigger differs, so each panel's own
+   file keeps just its selector. */
+#clock-mode.panel-open .panel,
+body.settings-open .settings-panel {
+  max-height: 62vh;
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+  /* Everything expanded can exceed the cap — scroll rather than clip the lower
+     section out of reach. */
+  overflow-y: auto;
+}
+
+/* ---------- Section rows ----------
+   "Wallpaper", "Appearance", "Alarms", "Timers" are the same rank of thing.
+
+   NO RULES BETWEEN THEM. Separation is carried by space and by type: a large gap
+   above each heading and a small one below it, so each heading sits closer to the
+   content it owns than to the section before it. That proximity is what groups
+   them — a line only announces a boundary the spacing should already have made
+   obvious. The gap above is deliberately more than twice the gap below; anything
+   less and the heading floats between two sections instead of belonging to one. */
+.settings-section-label,
+.panel-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+
+/* The first heading has no section above it to be separated from, so it does not
+   need the full inter-section gap — but it does need to clear the panel title,
+   which is a rank above it. 0.5rem left the two almost touching. */
+.settings-panel-title + .settings-section-label {
+  margin-top: 1.4rem;
+}
+
+/* The alarms panel has no title, so its first heading sits straight under the
+   panel's own padding and needs only a little breathing room. */
+.panel-section:first-child .panel-section-header {
+  margin-top: 0.35rem;
+}
+
+.settings-section-label,
+.panel-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  /* Was --fg-dim (0.55). Section headings are how you navigate the panel; they
+     were the dimmest text on a surface that is itself dim. Now that no rule marks
+     the boundary, they carry it alone and need the contrast. */
+  color: var(--fg);
+  /* Wide tracking is the other half of the job — it reads as a heading at a glance
+     even before you register the words, which is what the rule used to signal. */
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ---------- Chevron ----------
+   Was an unsized inherited glyph and rendered as a barely-visible speck. */
+.section-chevron {
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--fg-dim);
+  transition: transform 0.35s var(--ease-smooth), color 0.35s;
+}
+
+.settings-section-label[aria-expanded="true"] .section-chevron {
+  transform: rotate(180deg);
+  color: var(--fg);
+}
+
+/* ---------- Empty states ----------
+   Quieter and shorter than the rows they stand in for: an empty list should not
+   occupy more height than a full one. */
+.placeholder-row {
+  padding: 0.7rem 0 0.2rem;
+  color: var(--fg-dimmer);
+  font-size: 0.9rem;
+}
+
+/* ---------- Floating buttons ----------
+   The gear, the "+", the mode pill, the sleep pill and the sync nudge were each
+   carrying their own copy of the same surface — five sets of the same background
+   and the same double box-shadow, in three different files. One material here;
+   the individual files keep only position, size and glyph.
+
+   The old shadow (0 2px 8px rgba(0,0,0,.8), 0 4px 30px rgba(0,0,0,.5)) was doing
+   the work a border should: it was heavy enough to read as a dark smear around
+   every control. A hairline plus one soft shadow separates them just as well and
+   stops the corners of the screen looking grubby. */
+.settings-btn,
+.add-btn,
+.mode-btn,
+.sleep-btn,
+.sync-btn {
+  background: rgba(10, 10, 12, 0.5);
+  border: 1px solid rgb(var(--fg-rgb) / 0.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .settings-btn,
+  .add-btn,
+  .mode-btn,
+  .sleep-btn,
+  .sync-btn {
+    background: rgba(10, 10, 12, 0.34);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    backdrop-filter: blur(16px) saturate(1.5);
+  }
+}
