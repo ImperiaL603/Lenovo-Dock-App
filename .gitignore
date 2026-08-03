@@ -7,3 +7,7 @@ build/
 /captures
 .externalNativeBuild/
 .cxx/
+
+# Local design snapshots — copies of the web assets kept so a redesign can be
+# explored and reverted. Restore with design-snapshots/restore.ps1.
+design-snapshots/
