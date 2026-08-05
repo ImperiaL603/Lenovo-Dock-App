@@ -25,9 +25,22 @@
   // page is opened outside the native shell (e.g. a desktop browser).
   const BASE_URL = hasBridge ? AndroidMedia.wallpapersBaseUrl() : 'assets/video/';
 
+  // Where the in-APK copy of DEFAULT lives, which is not the device folder. Needed
+  // when the applied wallpaper is deleted and there is nothing on device to fall
+  // back to.
+  const APK_BASE = 'assets/video/';
+
   const video = document.getElementById('bg-video');
   const grid = document.getElementById('wallpaper-grid');
   const cycleRow = document.getElementById('wallpaper-cycle-row');
+  const section = document.querySelector('.wallpaper-section');
+  const addBtn = document.getElementById('wallpaper-add');
+  const removeBtn = document.getElementById('wallpaper-remove');
+  const deleteBtn = document.getElementById('wallpaper-delete');
+  const statusEl = document.getElementById('wallpaper-status');
+
+  // In select mode a chip tap marks for deletion instead of applying the wallpaper.
+  let picking = false;
 
   function listWallpapers() {
     if (!hasBridge) return [DEFAULT];
@@ -40,8 +53,8 @@
 
   function displayName(file) {
     return file
-      .replace(/\.1920x1080\.mp4$/i, '')
-      .replace(/\.mp4$/i, '')
+      .replace(/\.1920x1080(?=\.[a-z0-9]+$)/i, '')
+      .replace(/\.(mp4|webm|m4v)$/i, '')
       .split('-')
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
@@ -63,13 +76,20 @@
       .forEach((c) => c.classList.toggle('selected', c.dataset.file === file));
   }
 
-  function renderPicker(files) {
-    files.forEach((file) => {
+  /** Rebuilds from scratch — the list changes now that wallpapers can be added and
+   *  deleted, so appending would duplicate every chip on the second call. */
+  function renderPicker(list) {
+    grid.innerHTML = '';
+    list.forEach((file) => {
       const chip = document.createElement('button');
       chip.className = 'wallpaper-chip';
       chip.dataset.file = file;
       chip.textContent = displayName(file);
       chip.addEventListener('click', () => {
+        if (picking) {
+          chip.classList.toggle('marked');
+          return;
+        }
         // Picking one by hand means wanting that one to stay, so it stops the
         // rotation rather than being replaced again at midnight.
         setCycle(false);
@@ -78,6 +98,84 @@
       grid.appendChild(chip);
     });
   }
+
+  /* ---------- Library: add and remove ---------- */
+
+  const setStatus = (text) => { statusEl.textContent = text || ''; };
+
+  /** DEFAULT ships inside the APK as well as possibly living on device, so this
+   *  prefers the device copy and falls back to the bundled one. Without that, a
+   *  dock whose folder never contained the default would end up with a dead src. */
+  function applyDefault() {
+    localStorage.setItem(STORAGE_KEY, DEFAULT);
+    video.src = files.includes(DEFAULT) ? `${BASE_URL}${DEFAULT}` : `${APK_BASE}${DEFAULT}`;
+    video.load();
+    video.play();
+    markSelected(DEFAULT);
+  }
+
+  /** Re-reads the folder after anything changes it. If the wallpaper on screen was
+   *  the one just deleted, it has to be replaced or the clock keeps playing a file
+   *  that no longer exists. */
+  function refresh() {
+    files = listWallpapers();
+    renderPicker(files);
+    const saved = getSaved();
+    if (files.includes(saved)) markSelected(saved); else applyDefault();
+  }
+
+  function endPicking() {
+    picking = false;
+    section.classList.remove('picking');
+    removeBtn.classList.remove('selected');
+  }
+
+  addBtn.addEventListener('click', () => {
+    if (!hasBridge) return;
+    setStatus('Choose a video…');
+    AndroidMedia.addWallpaper();
+  });
+
+  removeBtn.addEventListener('click', () => {
+    if (picking) {
+      endPicking();
+      setStatus('');
+      return;
+    }
+    picking = true;
+    section.classList.add('picking');
+    removeBtn.classList.add('selected');
+    setStatus('Tap wallpapers to mark them, then press Delete.');
+  });
+
+  deleteBtn.addEventListener('click', () => {
+    const marked = Array.from(grid.querySelectorAll('.wallpaper-chip.marked'))
+      .map((c) => c.dataset.file);
+    if (!marked.length) {
+      setStatus('Nothing marked yet.');
+      return;
+    }
+    const removed = hasBridge ? AndroidMedia.deleteWallpapers(JSON.stringify(marked)) : 0;
+    endPicking();
+    refresh();
+    setStatus(`Deleted ${removed} wallpaper${removed === 1 ? '' : 's'}.`);
+  });
+
+  // Native pushes the result of the file picker here, because a bridge call cannot
+  // wait on an Activity result. A null name means cancelled, or the copy failed.
+  // Merged rather than assigned — script.js and spotify.js share this object and
+  // this file loads first.
+  window.LenovoDock = Object.assign(window.LenovoDock || {}, {
+    onWallpaperAdded(name) {
+      if (!name) {
+        setStatus('Nothing added.');
+        return;
+      }
+      refresh();
+      setStatus(`Added "${displayName(name)}". It now lives inside the app — `
+        + 'you can safely delete the original from your gallery or files.');
+    },
+  });
 
   /* ---------- Daily cycle ----------
      One stored record rather than four keys: the shuffled order, the position in
@@ -165,7 +263,8 @@
     if (v) setCycle(v === 'on');
   });
 
-  const files = listWallpapers();
+  // let, not const: the folder is now editable from the settings panel.
+  let files = listWallpapers();
   renderPicker(files);
   markCycleChips(loadCycle().on);
 

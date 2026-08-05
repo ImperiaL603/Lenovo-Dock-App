@@ -111,6 +111,18 @@
       <button class="option-chip" data-cycle="off">Off</button>
       <button class="option-chip" data-cycle="on">On</button>
     </div>
+    <!-- Add opens the system file picker; the chosen video is COPIED into the app's
+         own folder, so the original can then be deleted. Remove turns the grid below
+         into a multi-select and reveals Delete. -->
+    <div class="settings-subsection-label">Library</div>
+    <div class="option-row" id="wallpaper-actions">
+      <button class="option-chip" id="wallpaper-add">Add +</button>
+      <button class="option-chip" id="wallpaper-remove">Remove</button>
+      <button class="option-chip danger" id="wallpaper-delete">Delete</button>
+    </div>
+    <!-- Empty until there is something to report; :empty collapses it so the grid
+         does not shift down for a message that is not there. -->
+    <div class="wallpaper-status" id="wallpaper-status"></div>
     <div class="wallpaper-grid" id="wallpaper-grid"></div>
   </div>
 

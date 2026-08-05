@@ -84,6 +84,48 @@ body.settings-open .settings-btn:active {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ---------- Wallpaper library ----------
+   Delete is hidden until Remove puts the grid into select mode, so the destructive
+   control is never one mistap away from a full list. */
+#wallpaper-delete {
+  display: none;
+}
+
+.wallpaper-section.picking #wallpaper-delete {
+  display: inline-block;
+}
+
+/* The one red thing in the app. It only ever appears alongside a selection, so the
+   colour is carrying "this removes what you picked", not decoration. */
+.option-chip.danger {
+  color: rgb(255 138 128);
+  border-color: rgb(255 138 128 / 0.55);
+  background: rgb(255 138 128 / 0.12);
+}
+
+.option-chip.danger:active {
+  background: rgb(255 138 128 / 0.24);
+}
+
+/* In select mode a tap marks for deletion instead of applying the wallpaper, so
+   the marked state has to be unmistakably different from .selected. */
+.wallpaper-section.picking .wallpaper-chip.marked {
+  color: rgb(255 138 128);
+  border-color: rgb(255 138 128);
+  background: rgb(255 138 128 / 0.18);
+}
+
+.wallpaper-status {
+  margin-bottom: 0.9rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--fg);
+}
+
+.wallpaper-status:empty {
+  display: none;
+}
+
 /* ---------- Appearance section ----------
    One rank below .settings-section-label, and with no rules in the panel any more
    the difference has to be legible on its own. Three things separate them: it is

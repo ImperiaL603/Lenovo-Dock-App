@@ -2,8 +2,10 @@ package com.lenovodock.app
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import org.json.JSONObject
 import android.view.View
 import android.view.WindowManager
 import android.webkit.ConsoleMessage
@@ -66,6 +68,46 @@ class MainActivity : Activity() {
         // shows the next one — so the page can no longer be the only writer.
         AlarmStore.setAlarmObserver { injectAlarms() }
         TimerTicker.start(this)
+    }
+
+    /**
+     * ACTION_OPEN_DOCUMENT rather than ACTION_GET_CONTENT: it hands back a stable,
+     * readable document instead of a possibly-transient copy, and it needs no storage
+     * permission at all. The user picks from wherever they like — gallery, Files, an
+     * SD card — and we stream it into our own folder.
+     */
+    fun pickWallpaper() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "video/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, WallpaperStore.MIME_TYPES)
+        }
+        startActivityForResult(intent, REQ_PICK_WALLPAPER)
+    }
+
+    @Deprecated("startActivityForResult is the right API for a plain Activity on API 29")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PICK_WALLPAPER) return
+        val uri = data?.data
+        if (resultCode != RESULT_OK || uri == null) {
+            // Cancelling the picker is not a failure — tell the page so it can drop
+            // its "copying" state rather than sitting there forever.
+            injectWallpaperAdded(null)
+            return
+        }
+        // Off the main thread: this is a file copy that can run to tens of megabytes.
+        Thread {
+            val name = WallpaperStore.importFrom(this, uri)
+            runOnUiThread { injectWallpaperAdded(name) }
+        }.start()
+    }
+
+    /** null means nothing was added — cancelled, or the copy failed. */
+    private fun injectWallpaperAdded(name: String?) {
+        if (!pageReady) return
+        val arg = if (name == null) "null" else JSONObject.quote(name)
+        webView.evaluateJavascript("window.LenovoDock&&LenovoDock.onWallpaperAdded($arg)", null)
     }
 
     override fun onResume() {
@@ -141,5 +183,6 @@ class MainActivity : Activity() {
 
     companion object {
         private const val TAG = "LenovoDock" // shared with MediaListenerService / LyricsRepository
+        private const val REQ_PICK_WALLPAPER = 4101
     }
 }

@@ -1,9 +1,7 @@
 package com.lenovodock.app
 
-import android.content.Context
 import android.webkit.JavascriptInterface
 import org.json.JSONArray
-import java.io.File
 
 /**
  * JS bridge exposed to the WebView as `AndroidMedia`.
@@ -15,7 +13,12 @@ import java.io.File
  * TransportControls of whichever Spotify session MediaListenerService has bound.
  * Now-playing state travels the other way, injected straight into the page.
  */
-class MediaBridge(private val context: Context) {
+/**
+ * Typed as MainActivity rather than Context because the wallpaper picker has to be
+ * launched for a result, which only an Activity can do. Everywhere a plain Context
+ * was wanted this still is one.
+ */
+class MediaBridge(private val context: MainActivity) {
 
     @JavascriptInterface
     fun togglePlayPause() = NowPlayingRepository.togglePlayPause()
@@ -55,28 +58,29 @@ class MediaBridge(private val context: Context) {
 
     /** file:// base URL of the on-device wallpapers folder, with trailing slash. */
     @JavascriptInterface
-    fun wallpapersBaseUrl(): String = "file://${wallpapersDir().absolutePath}/"
+    fun wallpapersBaseUrl(): String = "file://${WallpaperStore.dir(context).absolutePath}/"
 
-    /** JSON array of the .mp4 filenames currently in the wallpapers folder, sorted. */
+    /** JSON array of the video filenames currently in the wallpapers folder, sorted. */
     @JavascriptInterface
-    fun listWallpapers(): String {
-        val names = wallpapersDir()
-            .listFiles { f -> f.isFile && f.name.endsWith(".mp4", ignoreCase = true) }
-            ?.map { it.name }
-            ?.sorted()
-            ?: emptyList()
-        return JSONArray(names).toString()
-    }
+    fun listWallpapers(): String = JSONArray(WallpaperStore.list(context)).toString()
 
-    private fun wallpapersDir(): File {
-        val dir = context.getExternalFilesDir(WALLPAPERS_SUBDIR)
-            ?: File(context.filesDir, WALLPAPERS_SUBDIR)
-        if (!dir.exists()) dir.mkdirs()
-        return dir
+    /**
+     * Opens the system file picker. Nothing is returned here — the result arrives
+     * asynchronously in MainActivity and is pushed back into the page, because a
+     * bridge call cannot wait for an Activity result.
+     */
+    @JavascriptInterface
+    fun addWallpaper() = context.runOnUiThread { context.pickWallpaper() }
+
+    /** Takes a JSON array of filenames; returns how many were actually removed. */
+    @JavascriptInterface
+    fun deleteWallpapers(namesJson: String): Int {
+        val arr = JSONArray(namesJson)
+        val names = (0 until arr.length()).map { arr.getString(it) }
+        return WallpaperStore.delete(context, names)
     }
 
     companion object {
         const val NAME = "AndroidMedia"
-        private const val WALLPAPERS_SUBDIR = "wallpapers"
     }
 }
