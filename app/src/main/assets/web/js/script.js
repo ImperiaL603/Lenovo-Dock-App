@@ -276,9 +276,18 @@ document.querySelectorAll('.settings-section-label').forEach((label) => {
 // reflow rather than zoom and cannot push anything off the panel.
 // Each row carries its own ladder: the lyrics run further and in finer steps
 // because they are the one thing read from across the room.
+// Five steps each, but not the same five: what limits them differs.
+//   clock   — stops at 1.3 because .clock-block is scaled by TRANSFORM, which does
+//             not reflow. The longest day name sets the ceiling: "WEDNESDAY" is
+//             ~936px wide at 1.0 on this 1280px panel, so 1.3 leaves ~30px a side
+//             and anything beyond runs off the screen.
+//   spotify — reflows rather than zooming, so it goes further; the progress bar's
+//             own width clamp in spotify.css is what keeps it on screen.
+//   lyric   — highest ceiling of the three: it only resizes type inside a fixed
+//             window, so there is nothing for it to push off the edge.
 const SCALES = {
-  clock: { small: 0.9, medium: 1, large: 1.1 },
-  spotify: { small: 0.9, medium: 1, large: 1.1 },
+  clock: { small: 0.85, medium: 1, large: 1.1, xlarge: 1.2, max: 1.3 },
+  spotify: { small: 0.85, medium: 1, large: 1.15, xlarge: 1.3, max: 1.45 },
   lyric: { small: 0.85, medium: 1, large: 1.15, xlarge: 1.3, max: 1.5 },
 };
 const DEFAULT_SIZE = 'medium';

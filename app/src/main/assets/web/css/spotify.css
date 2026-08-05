@@ -347,11 +347,12 @@ body.mode-spotify .bg-video { opacity: 0; }
   left: 50%;
   bottom: 11.5vh;
   transform: translateX(-50%);
-  /* Sized off the LARGEST setting, which is what sets the ceiling: at scale 1.1 this
-     leaves ~4.9vw of margin each side, landing level with the 5vw the gear and sync
-     pills sit on. At the default size it comes out at ~9vw a side. Going wider would
-     have the bar overhang those buttons at Large. */
-  width: calc(min(82vw, 1100px) * var(--spotify-scale));
+  /* 82vw at the default size, ~9vw of margin each side. The outer min() is a hard
+     ceiling, not decoration: the size ladder now reaches 1.45, and 82vw × 1.45 is
+     119vw — the bar would be wider than the screen and its end labels would sit off
+     both edges. Clamped at 90vw it stops level with the 5vw the gear and sync pills
+     occupy, however far the ladder is pushed. */
+  width: min(calc(min(82vw, 1100px) * var(--spotify-scale)), 90vw);
   z-index: 1;
 }
 .progress-times {
