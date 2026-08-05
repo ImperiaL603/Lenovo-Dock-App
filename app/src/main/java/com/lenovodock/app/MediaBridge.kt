@@ -31,6 +31,14 @@ class MediaBridge(private val context: Context) {
     @JavascriptInterface
     fun sleepDeadline(): Long = SleepReceiver.deadline(context)
 
+    /** Fade-out window in minutes, 0 for off. Native-owned like the deadline: the
+     *  alarm that acts on it fires with no page attached. */
+    @JavascriptInterface
+    fun setSleepFade(minutes: Int) = SleepFade.setMinutes(context, minutes)
+
+    @JavascriptInterface
+    fun sleepFade(): Int = SleepFade.minutes(context)
+
     @JavascriptInterface
     fun skipToNext() = NowPlayingRepository.skipToNext()
 

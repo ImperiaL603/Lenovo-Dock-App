@@ -21,12 +21,18 @@
   const row = document.getElementById('sleep-row');
   const customInput = document.getElementById('sleep-custom-min');
   const customBtn = document.getElementById('sleep-custom-set');
+  const fadeRow = document.getElementById('fade-row');
+  const fadeInput = document.getElementById('fade-custom-min');
+  const fadeBtn = document.getElementById('fade-custom-set');
 
   const bridge = () => (typeof AndroidMedia !== 'undefined' ? AndroidMedia : null);
 
   let minutes = parseInt(localStorage.getItem(STORAGE_KEY), 10) || DEFAULT_MIN;
   let deadline = 0; // epoch ms, 0 = disarmed; a mirror of native's value
   let uiTimer = null;
+  // Unlike `minutes`, this is NOT stored on this side. The alarm that acts on it
+  // fires into a process with no page, so native has to be the one that knows.
+  let fadeMinutes = 0;
 
   function render() {
     btn.classList.toggle('armed', deadline > 0);
@@ -48,10 +54,28 @@
       : null;
   }
 
+  // A custom length matches no chip, which is what deselects them all.
+  function renderFade() {
+    fadeRow.querySelectorAll('.option-chip').forEach((chip) => {
+      chip.classList.toggle('selected', Number(chip.dataset.fade) === fadeMinutes);
+    });
+  }
+
+  // 0 is a valid value here — it means "no fade" — so this floors at 0, not 1.
+  function setFade(next) {
+    if (!Number.isFinite(next) || next < 0) return;
+    fadeMinutes = Math.round(next);
+    const b = bridge();
+    if (b) b.setSleepFade(fadeMinutes);
+    renderFade();
+  }
+
   function sync() {
     const b = bridge();
     deadline = b ? Number(b.sleepDeadline()) : 0;
+    fadeMinutes = b ? Number(b.sleepFade()) : 0;
     render();
+    renderFade();
     scheduleUiFlip();
   }
 
@@ -89,6 +113,15 @@
   });
 
   customBtn.addEventListener('click', () => setMinutes(parseInt(customInput.value, 10)));
+
+  fadeRow.addEventListener('click', (e) => {
+    const f = e.target.dataset.fade;
+    if (f === undefined) return;
+    fadeInput.value = '';
+    setFade(Number(f));
+  });
+
+  fadeBtn.addEventListener('click', () => setFade(parseInt(fadeInput.value, 10)));
 
   // Catches an alarm that fired while this page was suspended.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });

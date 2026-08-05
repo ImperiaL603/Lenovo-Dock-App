@@ -206,6 +206,7 @@
     <span class="section-chevron">&#9662;</span>
   </button>
   <div class="collapsible">
+    <div class="settings-subsection-label">Sleep after</div>
     <div class="option-row" id="sleep-row">
       <button class="option-chip" data-minutes="15">15 min</button>
       <button class="option-chip" data-minutes="30">30 min</button>
@@ -215,6 +216,19 @@
     <div class="custom-row">
       <input type="number" id="sleep-custom-min" class="form-input" placeholder="Custom min" min="1" />
       <button class="form-save-btn" id="sleep-custom-set">Set</button>
+    </div>
+    <!-- Runs AFTER the interval above, not inside it: 30 min sleep with a 5 min fade
+         is full volume for 30, winding down for 5, silent at 35. -->
+    <div class="settings-subsection-label">Fade out</div>
+    <div class="option-row" id="fade-row">
+      <button class="option-chip" data-fade="0">Off</button>
+      <button class="option-chip" data-fade="1">1 min</button>
+      <button class="option-chip" data-fade="3">3 min</button>
+      <button class="option-chip" data-fade="5">5 min</button>
+    </div>
+    <div class="custom-row">
+      <input type="number" id="fade-custom-min" class="form-input" placeholder="Custom min" min="0" />
+      <button class="form-save-btn" id="fade-custom-set">Set</button>
     </div>
   </div>
 </div>

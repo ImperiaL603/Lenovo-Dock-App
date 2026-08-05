@@ -21,7 +21,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   const GLYPH_PLAY = '▶'; // U+25B6 — old enough that Roboto covers it, so it stays text
   // Shown during an ad break. Ads and lyric-less tracks both deliver an empty list,
   // so without this the dock reads as broken for 30 seconds twice an hour.
-  const AD_MESSAGE = 'Spotify is Bullshit';
+  const AD_MESSAGE = 'Just a moment… Spotify is playing an ad';
   const SYNC_STEP_MS = 250;    // one tap of the nudge
   const SYNC_LIMIT_MS = 5000;  // past this it is the wrong record, not a timing fault
   const SYNC_KEY = 'lyric-offsets';

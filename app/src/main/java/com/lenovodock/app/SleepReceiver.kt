@@ -20,9 +20,20 @@ import android.util.Log
  */
 class SleepReceiver : BroadcastReceiver() {
 
+    /**
+     * Two alarms arrive here. The deadline has no action; the fade's own chained
+     * steps carry ACTION_STEP and are scheduled by SleepFade, which is why they are
+     * told apart by action rather than by request code.
+     */
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == SleepFade.ACTION_STEP) {
+            SleepFade.step(context)
+            return
+        }
         clearDeadline(context)
-        MediaListenerService.pauseSpotify(context)
+        // begin() declines when no fade window is set or the volume is already down,
+        // and then the timer stops the music outright exactly as it always did.
+        if (!SleepFade.begin(context)) MediaListenerService.pauseSpotify(context)
     }
 
     companion object {
@@ -51,6 +62,9 @@ class SleepReceiver : BroadcastReceiver() {
         /** Arming again replaces any pending alarm — FLAG_UPDATE_CURRENT reuses the
          *  same PendingIntent, so changing the interval restarts the countdown. */
         fun arm(context: Context, minutes: Int): Long {
+            // Re-arming while a fade is running would otherwise leave the volume part
+            // way down with nothing left to put it back.
+            SleepFade.abort(context)
             val at = System.currentTimeMillis() + minutes * 60_000L
             prefs(context).edit().putLong(KEY_DEADLINE, at).apply()
             alarmManager(context).setExactAndAllowWhileIdle(
@@ -62,6 +76,9 @@ class SleepReceiver : BroadcastReceiver() {
 
         fun cancel(context: Context) {
             alarmManager(context).cancel(pendingIntent(context))
+            // Disarming part way through a fade has to give the volume back, not just
+            // stop the countdown that was lowering it.
+            SleepFade.abort(context)
             clearDeadline(context)
             Log.d(TAG, "sleep: cancelled")
         }
