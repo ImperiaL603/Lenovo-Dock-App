@@ -3,6 +3,30 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// ---- Release signing ----
+// Two sources, in order: a local keystore.properties (gitignored, for building
+// signed APKs on this machine), then environment variables (what CI sets from
+// repository secrets). If neither is present the release build is left UNSIGNED
+// rather than failing, so a fresh clone still builds without the key.
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def ksFile = keystoreProps['storeFile'] ?: System.getenv('KEYSTORE_FILE')
+def ksStorePassword = keystoreProps['storePassword'] ?: System.getenv('KEYSTORE_PASSWORD')
+def ksKeyAlias = keystoreProps['keyAlias'] ?: System.getenv('KEY_ALIAS')
+def ksKeyPassword = keystoreProps['keyPassword'] ?: System.getenv('KEY_PASSWORD')
+def hasSigningKey = ksFile != null && file(ksFile).exists()
+
+// Resolved here rather than inline in defaultConfig. Written as
+//   versionCode (findProperty('x') ?: '1') as Integer
+// Groovy parses it as versionCode(...) as Integer — the cast applies to the
+// method's return value, not to the argument — and casting that null is exactly
+// the "Value is null" this file failed with. Same trap on ?: after versionName.
+def appVersionCode = ((project.findProperty('appVersionCode') ?: '1') as String).toInteger()
+def appVersionName = (project.findProperty('appVersionName') ?: '0.1.0') as String
+
 android {
     namespace 'com.lenovodock.app'
     compileSdk 36
@@ -11,12 +35,26 @@ android {
         applicationId 'com.lenovodock.app'
         minSdk 29          // Lenovo TB-X306X — Android 10
         targetSdk 36
-        versionCode 1
-        versionName '0.1.0'
+        // Overridable so a tagged release can carry the tag's version without a
+        // commit: -PappVersionName=1.2.0 -PappVersionCode=7
+        versionCode appVersionCode
+        versionName appVersionName
+    }
+
+    signingConfigs {
+        if (hasSigningKey) {
+            release {
+                storeFile file(ksFile)
+                storePassword ksStorePassword
+                keyAlias ksKeyAlias
+                keyPassword ksKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
+            if (hasSigningKey) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

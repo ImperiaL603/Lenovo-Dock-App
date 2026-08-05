@@ -11,3 +11,14 @@ build/
 # Local design snapshots — copies of the web assets kept so a redesign can be
 # explored and reverted. Restore with design-snapshots/restore.ps1.
 design-snapshots/
+
+# Signing key and its passwords. NEVER commit these — anyone holding the keystore
+# can publish updates that Android will accept as genuine.
+# The .base64 forms matter as much as the binary: they are the same key, and a
+# plain *.jks pattern does NOT match release.jks.base64.
+keystore.properties
+*.jks
+*.jks.*
+*.keystore
+*.keystore.*
+*.base64
