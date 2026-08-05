@@ -2,109 +2,78 @@
 
 Turns an old Android tablet into an always-on desk clock and Spotify display.
 
-- Full-screen clock with day, time, date, next alarm and running timers
-- Alarms and timers, scheduled natively so they survive reboots
-- Spotify now-playing: album art, scrolling time-synced lyrics, transport controls
-- Video wallpapers with an optional daily rotation
-- Sleep timer with an optional volume fade-out
-- Auto-dim from the ambient light sensor, themes, album-colour tinting
+- Full-screen clock with the day, time, date, your next alarm and any running timers
+- Alarms and timers that survive a reboot
+- Spotify now-playing: album art, scrolling time-synced lyrics, and playback controls
+- Video wallpapers, with an optional daily rotation
+- Sleep timer that can fade the volume down before stopping
+- Screen dims itself in a dark room
+- Themes, or tint the whole screen from the album cover
 
-Built for a Lenovo TB-X306X (1280x800, Android 10, 2GB RAM). It is a native
-Android shell around a WebView front-end.
+Made for a Lenovo TB-X306X (1280×800, Android 10), but it should run on any landscape
+tablet with Android 10 or newer.
 
-## How it works
+## Install
 
-A `NotificationListenerService` reads Spotify's media session through
-`MediaSessionManager` — track, position, album art and playback state — and pushes
-it into a WebView that renders the interface. Transport buttons go back the same
-way. Lyrics are fetched natively from [lrclib.net](https://lrclib.net), with
-NetEase as a fallback for tracks lrclib has no timings for.
+**[Download the latest release](https://github.com/ImperiaL603/Lenovo-Dock-App/releases/latest)** and open the `.apk` on your tablet.
 
-Nothing here touches the Spotify Web API, and it holds no Spotify credentials.
+Android will warn you that it's from an unknown source — allow it for whichever app
+you opened the file with. Later versions install straight over the top, so you never
+lose your settings.
 
-## Download
+## First-time setup
 
-**[Latest release](https://github.com/ImperiaL603/Lenovo-Dock-App/releases/latest)** — grab the `.apk` and open it on the tablet.
+The app needs one permission to read what Spotify is playing. Nothing works in
+Spotify mode until you grant it.
 
-Android will ask permission to install from an unknown source the first time; allow
-it for whichever app you opened the file with. Updates install straight over the top,
-no uninstall needed.
+**Settings → Apps → Special app access → Notification access → turn on Lenovo Dock**
 
-## Requirements
+The exact wording varies by tablet — look for "Notification access" or "Device &
+app notifications".
 
-- Android 10 or newer, landscape
-- Spotify installed, on the same device
-- Notification access, so the media session can be read:
+That's the only setup step. Spotify mode then appears on its own whenever music
+starts, and returns to the clock about 30 seconds after it stops.
 
-```
-adb shell cmd notification allow_listener com.lenovodock.app/com.lenovodock.app.MediaListenerService
-```
+## Adding wallpapers
 
-## Build
+**No wallpapers come with the app** — you'll see a dark gradient behind the clock
+until you add one.
 
-```
-./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
+Open the gear icon, then **Wallpaper → Add +**. Pick any video from your gallery or
+files. It gets copied into the app, so you can safely delete the original afterwards.
 
-## Releases
+To remove one, press **Remove**, tap the wallpapers you want gone, then **Delete**.
 
-Tagging is what publishes. `.github/workflows/release.yml` builds a signed APK and
-attaches it to a GitHub Release:
+`.mp4`, `.webm` and `.m4v` all work. **Daily cycle** rotates through them, one a day.
 
-```
-git tag v0.2.0
-git push origin v0.2.0
-```
+## Settings
 
-The tag sets `versionName` and the run number sets `versionCode`, so nothing needs
-committing to cut a release.
+Everything lives behind the gear icon:
 
-It needs four repository secrets (Settings → Secrets and variables → Actions).
-Generate a key once and keep the `.jks` somewhere safe — losing it means never being
-able to update an installed copy again:
-
-```
-keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 \
-        -validity 10000 -alias lenovodock
-
-base64 -w0 release.jks > release.jks.base64   # Linux/macOS
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.jks")) > release.jks.base64   # PowerShell
-```
-
-| Secret | Value |
+| Section | What's in it |
 |---|---|
-| `KEYSTORE_BASE64` | contents of `release.jks.base64` |
-| `KEYSTORE_PASSWORD` | keystore password |
-| `KEY_ALIAS` | `lenovodock` |
-| `KEY_PASSWORD` | key password |
+| **Wallpaper** | Add, remove, and the daily rotation |
+| **Appearance** | Size of the clock, the Spotify screen and the lyrics, plus themes |
+| **Display** | Auto-dim, and how dark it's allowed to get |
+| **Audio** | Mute Spotify's ads |
+| **Sleep** | Stop the music after a set time, optionally fading out first |
 
-To build a signed APK locally instead, put a `keystore.properties` in the repo root
-(it is gitignored):
+The `+` button on the clock screen is where alarms and timers live.
 
-```
-storeFile=/absolute/path/to/release.jks
-storePassword=...
-keyAlias=lenovodock
-keyPassword=...
-```
+## Good to know
 
-## Wallpapers
+- Set your tablet's screen timeout to **Never**, or it'll sleep while Spotify is in
+  the foreground.
+- Lyrics come from [lrclib.net](https://lrclib.net). Not every track has them, and
+  some community-uploaded ones are timed slightly wrong — the `+`/`−` control on the
+  Spotify screen nudges them into place, per song.
+- The app holds no Spotify login and never sees your account. It only reads what the
+  Spotify app on the same tablet is already playing.
 
-**None are bundled** — a fresh install shows a plain gradient behind the clock until
-you add one.
+## Contributing
 
-Settings → Wallpaper → **Add +** opens the file picker. The video you choose is
-copied into the app's own storage, so the original can then be deleted from your
-gallery. **Remove** turns the list into a multi-select and reveals Delete.
-
-You can also drop files in directly, which is equivalent:
-
-```
-adb push my-wallpaper.mp4 /sdcard/Android/data/com.lenovodock.app/files/wallpapers/
-```
-
-`.mp4`, `.webm` and `.m4v` are recognised.
+Build instructions and how releases are made are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licence
 
@@ -112,8 +81,7 @@ Copyright (C) 2026 Imperial
 
 This program is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
+Foundation, either version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful, but **WITHOUT ANY
 WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
@@ -124,11 +92,11 @@ program. If not, see <https://www.gnu.org/licenses/>.
 
 ## No affiliation, and no responsibility
 
-This project is not affiliated with, endorsed by, or connected to Spotify AB,
-Lenovo, lrclib or NetEase. All trademarks belong to their respective owners.
+This project is not affiliated with, endorsed by, or connected to Spotify AB, Lenovo,
+lrclib or NetEase. All trademarks belong to their respective owners.
 
-It is provided as is. The author accepts no responsibility for what anyone else
-does with it, including modified or redistributed copies. If you fork it, you are
+It is provided as is. The author accepts no responsibility for what anyone else does
+with it, including modified or redistributed copies. If you fork it, you are
 responsible for your own use of it and for complying with the terms of any service
 it talks to.
 
