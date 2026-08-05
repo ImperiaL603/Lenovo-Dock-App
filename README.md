@@ -91,12 +91,20 @@ keyPassword=...
 
 ## Wallpapers
 
-Wallpapers are read off the device rather than bundled, so adding one needs no
-code change:
+**None are bundled** — a fresh install shows a plain gradient behind the clock until
+you add one.
+
+Settings → Wallpaper → **Add +** opens the file picker. The video you choose is
+copied into the app's own storage, so the original can then be deleted from your
+gallery. **Remove** turns the list into a multi-select and reveals Delete.
+
+You can also drop files in directly, which is equivalent:
 
 ```
 adb push my-wallpaper.mp4 /sdcard/Android/data/com.lenovodock.app/files/wallpapers/
 ```
+
+`.mp4`, `.webm` and `.m4v` are recognised.
 
 ## Licence
 
@@ -131,6 +139,6 @@ by the licence above. Check their terms before redistributing:
 
 - `app/src/main/assets/web/assets/fonts/Anurati-Regular.otf` — Anurati, by Emmeran
   Richard. Free for personal use; verify its terms before shipping it anywhere.
-- `app/src/main/assets/web/assets/video/endless-summer-horizon.1920x1080.mp4` —
-  sample wallpaper, provenance unverified.
 - Quicksand is pulled from Google Fonts at runtime (SIL Open Font License).
+
+No wallpapers are distributed with this project.

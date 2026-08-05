@@ -22,8 +22,10 @@
 </head>
 <body>
 
-  <video id="bg-video" class="bg-video" autoplay muted loop playsinline
-       src="assets/video/endless-summer-horizon.1920x1080.mp4"></video>
+  <!-- No src: nothing ships in the APK any more. wallpaper.js sets one from the
+       on-device folder, and where that folder is empty the element stays blank and
+       the page's own gradient shows through. -->
+  <video id="bg-video" class="bg-video" autoplay muted loop playsinline></video>
 
   <!-- ===================== CLOCK ===================== -->
   <section id="clock-mode">

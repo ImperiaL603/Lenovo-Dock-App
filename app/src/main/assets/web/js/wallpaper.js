@@ -11,24 +11,18 @@
 (function () {
   'use strict';
 
-  // Matches the first-paint src hardcoded on #bg-video in index.html (an
-  // in-APK copy), so the clock always has a wallpaper even before the
-  // device folder is read.
-  const DEFAULT = 'endless-summer-horizon.1920x1080.mp4';
+  // There is no bundled wallpaper. Everything comes from the on-device folder, so
+  // "none" is a real state the whole file has to cope with: a fresh install has an
+  // empty folder until the owner adds something with Add +.
   const STORAGE_KEY = 'wallpaper';
   const CYCLE_KEY = 'wallpaper-cycle';
   // Only has to notice midnight, and the dock is awake for most of them.
   const CHECK_MS = 60000;
 
   const hasBridge = typeof AndroidMedia !== 'undefined';
-  // On-device file:// base; falls back to the in-APK asset path when the
-  // page is opened outside the native shell (e.g. a desktop browser).
-  const BASE_URL = hasBridge ? AndroidMedia.wallpapersBaseUrl() : 'assets/video/';
-
-  // Where the in-APK copy of DEFAULT lives, which is not the device folder. Needed
-  // when the applied wallpaper is deleted and there is nothing on device to fall
-  // back to.
-  const APK_BASE = 'assets/video/';
+  // Empty outside the native shell (a desktop browser), where there is no folder to
+  // read and therefore nothing to play.
+  const BASE_URL = hasBridge ? AndroidMedia.wallpapersBaseUrl() : '';
 
   const video = document.getElementById('bg-video');
   const grid = document.getElementById('wallpaper-grid');
@@ -43,7 +37,7 @@
   let picking = false;
 
   function listWallpapers() {
-    if (!hasBridge) return [DEFAULT];
+    if (!hasBridge) return [];
     try {
       return JSON.parse(AndroidMedia.listWallpapers() || '[]');
     } catch (e) {
@@ -60,7 +54,8 @@
       .join(' ');
   }
 
-  const getSaved = () => localStorage.getItem(STORAGE_KEY) || DEFAULT;
+  // '' rather than a default filename — there is no longer one to fall back to.
+  const getSaved = () => localStorage.getItem(STORAGE_KEY) || '';
 
   function applyWallpaper(file) {
     localStorage.setItem(STORAGE_KEY, file);
@@ -80,6 +75,15 @@
    *  deleted, so appending would duplicate every chip on the second call. */
   function renderPicker(list) {
     grid.innerHTML = '';
+    if (!list.length) {
+      // Same primitive the alarms panel uses for "No alarms set", so an empty
+      // library reads like every other empty list in the app.
+      const empty = document.createElement('div');
+      empty.className = 'placeholder-row';
+      empty.textContent = 'No wallpapers yet — use Add + to choose a video.';
+      grid.appendChild(empty);
+      return;
+    }
     list.forEach((file) => {
       const chip = document.createElement('button');
       chip.className = 'wallpaper-chip';
@@ -103,25 +107,25 @@
 
   const setStatus = (text) => { statusEl.textContent = text || ''; };
 
-  /** DEFAULT ships inside the APK as well as possibly living on device, so this
-   *  prefers the device copy and falls back to the bundled one. Without that, a
-   *  dock whose folder never contained the default would end up with a dead src. */
-  function applyDefault() {
-    localStorage.setItem(STORAGE_KEY, DEFAULT);
-    video.src = files.includes(DEFAULT) ? `${BASE_URL}${DEFAULT}` : `${APK_BASE}${DEFAULT}`;
+  /** Empties the element rather than pointing it at a placeholder, which is what
+   *  lets the page's gradient show through. Reached when the folder is empty. */
+  function clearWallpaper() {
+    localStorage.removeItem(STORAGE_KEY);
+    video.removeAttribute('src');
     video.load();
-    video.play();
-    markSelected(DEFAULT);
+    markSelected('');
   }
 
   /** Re-reads the folder after anything changes it. If the wallpaper on screen was
    *  the one just deleted, it has to be replaced or the clock keeps playing a file
-   *  that no longer exists. */
+   *  that no longer exists — falling to the next one along, or to nothing. */
   function refresh() {
     files = listWallpapers();
     renderPicker(files);
     const saved = getSaved();
-    if (files.includes(saved)) markSelected(saved); else applyDefault();
+    if (files.includes(saved)) markSelected(saved);
+    else if (files.length) applyWallpaper(files[0]);
+    else clearWallpaper();
   }
 
   function endPicking() {
@@ -271,12 +275,12 @@
   // Cycle first: if a day has passed it is about to pick a different wallpaper, and
   // restoring the saved one beforehand would decode a 1080p video for nothing.
   if (!advanceCycle()) {
-    // The in-APK default is already the first-paint src, so only reload for a
-    // different, still-present file; if the saved one was removed from the folder,
-    // fall back to the default.
+    // Nothing is loaded at first paint any more, so unlike before there is always a
+    // src to set — unless the folder is empty, which is now a legitimate state.
     const saved = getSaved();
-    const target = files.includes(saved) ? saved : DEFAULT;
-    if (target !== DEFAULT) applyWallpaper(target); else markSelected(DEFAULT);
+    if (files.includes(saved)) applyWallpaper(saved);
+    else if (files.length) applyWallpaper(files[0]);
+    else clearWallpaper();
   }
 
   setInterval(advanceCycle, CHECK_MS);

@@ -65,10 +65,17 @@
   padding: 0;
 }
 
+/* What you see when there is no wallpaper — a fresh install, or every one deleted.
+   A playing wallpaper covers this entirely, so it costs nothing the rest of the
+   time. Kept very dark and very gradual: it has to read as depth behind the clock,
+   not as a visible shape, and it sits under an always-on display where any banding
+   would be there all night. */
 html, body {
   width: 100%;
   height: 100%;
   background: var(--bg);
+  background-image: radial-gradient(ellipse 130% 90% at 50% -10%,
+      #1c2230 0%, #12161f 38%, #080a0e 70%, #000 100%);
   color: var(--fg);
   font-family: var(--font-body);
   overflow: hidden;
