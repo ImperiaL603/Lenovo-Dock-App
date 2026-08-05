@@ -70,6 +70,13 @@ The `+` button on the clock screen is where alarms and timers live.
 - The app holds no Spotify login and never sees your account. It only reads what the
   Spotify app on the same tablet is already playing.
 
+## About
+
+I am a solo Vibe Coding Dev, still in school (so don't expect fast responses).
+
+I made this app as it was useful to me and published it on git cause other people
+might find it useful as well.
+
 ## Contributing
 
 Build instructions and how releases are made are in
