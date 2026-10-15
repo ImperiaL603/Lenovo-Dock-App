@@ -238,13 +238,13 @@ document.getElementById('save-timer-btn').addEventListener('click', () => {
   document.getElementById('new-timer-minutes').value = '';
 });
 
-// ---------- Native bridge hooks (merge, don't overwrite — spotify.js also uses window.LenovoDock) ----------
+// ---------- Native bridge hooks (merge, don't overwrite — nowplaying.js also uses window.LenovoDock) ----------
 window.LenovoDock = Object.assign(window.LenovoDock || {}, {
   onAlarmsChanged(list) { alarms = list; renderAlarms(); },
   onTimerTick(list) { timers = list; renderTimers(); },
   onAlbumColour(rgb) { albumRgb = rgb; applyColourSource(); },
-  // Called by spotify.js after it has changed body.mode-spotify, which is what
-  // inSpotifyMode() reads — hence after, not before.
+  // Called by nowplaying.js after it has changed body.mode-nowplaying, which is what
+  // innowplayingMode() reads — hence after, not before.
   onModeChanged() { applyColourSource(); }
 });
 
@@ -271,8 +271,8 @@ document.querySelectorAll('.settings-section-label').forEach((label) => {
 });
 
 // ---------- Appearance sizes ----------
-// --clock-scale scales the clock block by transform; --spotify-scale and
-// --lyric-scale are real lengths that spotify.css lays out from, so those two
+// --clock-scale scales the clock block by transform; --nowplaying-scale and
+// --lyric-scale are real lengths that nowplaying.css lays out from, so those two
 // reflow rather than zoom and cannot push anything off the panel.
 // Each row carries its own ladder: the lyrics run further and in finer steps
 // because they are the one thing read from across the room.
@@ -281,13 +281,13 @@ document.querySelectorAll('.settings-section-label').forEach((label) => {
 //             not reflow. The longest day name sets the ceiling: "WEDNESDAY" is
 //             ~936px wide at 1.0 on this 1280px panel, so 1.3 leaves ~30px a side
 //             and anything beyond runs off the screen.
-//   spotify — reflows rather than zooming, so it goes further; the progress bar's
-//             own width clamp in spotify.css is what keeps it on screen.
+//   nowplaying — reflows rather than zooming, so it goes further; the progress bar's
+//             own width clamp in nowplaying.css is what keeps it on screen.
 //   lyric   — highest ceiling of the three: it only resizes type inside a fixed
 //             window, so there is nothing for it to push off the edge.
 const SCALES = {
   clock: { small: 0.85, medium: 1, large: 1.1, xlarge: 1.2, max: 1.3 },
-  spotify: { small: 0.85, medium: 1, large: 1.15, xlarge: 1.3, max: 1.45 },
+  nowplaying: { small: 0.85, medium: 1, large: 1.15, xlarge: 1.3, max: 1.45 },
   lyric: { small: 0.85, medium: 1, large: 1.15, xlarge: 1.3, max: 1.5 },
 };
 const DEFAULT_SIZE = 'medium';
@@ -301,19 +301,21 @@ function applySize(mode, size) {
 
 document.querySelectorAll('.option-row[data-scale]').forEach((row) => {
   const mode = row.dataset.scale;
-  const saved = localStorage.getItem(`size-${mode}`);
+    // 'size-nowplaying' was this row's key before the rename; read it once so a saved size survives.
+    const saved = localStorage.getItem(`size-${mode}`)
+      || (mode === 'nowplaying' ? localStorage.getItem('size-spotify') : null);
   applySize(mode, SCALES[mode][saved] ? saved : DEFAULT_SIZE);
   row.addEventListener('click', (e) => {
     const size = e.target.dataset.size;
     if (!size) return;
     applySize(mode, size);
-    // Both spotify sizes move the lyric column's width or its type, and the scroll
+    // Both nowplaying sizes move the lyric column's width or its type, and the scroll
     // position is measured from line offsets — re-read them, or the next tick
     // scrolls to where a line used to be. Called for every row rather than just
-    // the two that matter: measuring while #spotify-mode is hidden reads zeros,
+    // the two that matter: measuring while #nowplaying-mode is hidden reads zeros,
     // which is the same state buildLyrics() already leaves behind when a track
-    // arrives during clock mode, and enterSpotify() re-measures out of it either
-    // way. spotify.js has loaded by the time anything here can be tapped.
+    // arrives during clock mode, and enternowplaying() re-measures out of it either
+    // way. nowplaying.js has loaded by the time anything here can be tapped.
     LenovoDock.remeasure();
   });
 });
@@ -350,15 +352,15 @@ const ACCENT_SHARE = 0.4; // themes.css blends 60% light text + 40% accent for -
 let albumOn = localStorage.getItem('album-colours') === 'on';
 let albumRgb = null;      // "r g b" from native, or null when there's no art
 
-// Read from the class spotify.js already sets rather than kept as a second copy of
+// Read from the class nowplaying.js already sets rather than kept as a second copy of
 // "which mode are we in". Pausing does not end the media session, so the art URL
 // never changes and native has no reason to clear the colour — without this the
 // sleeve's hue would follow the dock back onto the clock and stay there.
-const inSpotifyMode = () => document.body.classList.contains('mode-spotify');
+const innowplayingMode = () => document.body.classList.contains('mode-nowplaying');
 
 function applyColourSource() {
   const root = document.documentElement;
-  if (albumOn && albumRgb && inSpotifyMode()) {
+  if (albumOn && albumRgb && innowplayingMode()) {
     root.style.setProperty('--accent-rgb', albumRgb);
     root.style.setProperty('--fg-rgb', towardsWhite(albumRgb));
   } else {

@@ -15,11 +15,14 @@ data class NowPlaying(
     val durationMs: Long,
     val positionMs: Long,
     val speed: Float,
-    val art: String?,          // https album-art URL, or null when the session has no art
-    val playlistName: String?, // set only when playing from a playlist
-    val isAd: Boolean,         // Spotify serves ads through the same session as tracks
+    val art: String?,          // https or file:// album-art URL, or null when there is no art
+    val playlistName: String?, // set only for Spotify playing from a playlist
+    val isAd: Boolean,         // set by any player that flags ad breaks in its session
+    val source: String,        // package name of the player this came from
 ) {
     private val hasArt: Boolean get() = art != null
+
+    val isSpotify: Boolean get() = source == SPOTIFY_PKG
 
     fun toJson(): String = JSONObject().apply {
         put("playing", playing)
@@ -36,4 +39,8 @@ data class NowPlaying(
         // found no lyrics for — both arrive as an empty lyric list.
         put("ad", isAd)
     }.toString()
+
+    companion object {
+        const val SPOTIFY_PKG = "com.spotify.music"
+    }
 }

@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="css/panels.css" />
 <link rel="stylesheet" href="css/alarms.css" />
 <link rel="stylesheet" href="css/settings.css" />
-<link rel="stylesheet" href="css/spotify.css" />
+<link rel="stylesheet" href="css/nowplaying.css" />
 <link rel="stylesheet" href="css/idle.css" />
 </head>
 <body>
@@ -141,8 +141,8 @@
       <button class="option-chip" data-size="xlarge">Huge</button>
       <button class="option-chip" data-size="max">Max</button>
     </div>
-    <div class="settings-subsection-label">Spotify</div>
-    <div class="option-row" data-scale="spotify">
+    <div class="settings-subsection-label">Now playing</div>
+    <div class="option-row" data-scale="nowplaying">
       <button class="option-chip" data-size="small">Small</button>
       <button class="option-chip" data-size="medium">Medium</button>
       <button class="option-chip" data-size="large">Large</button>
@@ -204,7 +204,7 @@
     <span class="section-chevron">&#9662;</span>
   </button>
   <div class="collapsible">
-    <!-- Silences the music stream for the length of a Spotify ad break. State is
+    <!-- Silences the music stream for the length of a Now playing ad break. State is
          held natively — MediaListenerService acts on it whether or not this page
          exists — so these chips are rendered from what native reports, not from
          localStorage. -->
@@ -251,26 +251,26 @@
   <span>&#9881;</span>
 </button>
 
-<!-- Testing aid: jump between Clock and Spotify without waiting on playback.
+<!-- Testing aid: jump between Clock and Now Playing without waiting on playback.
      Lives outside both sections so it stays visible in either mode. -->
-<button id="mode-btn" class="mode-btn">Spotify</button>
+<button id="mode-btn" class="mode-btn">Now Playing</button>
 
-<!-- Sleep toggle: sits beside the gear, Spotify mode only. -->
+<!-- Sleep toggle: sits beside the gear, Now Playing mode only. -->
 <button id="sleep-btn" class="sleep-btn">Sleep</button>
 
 <!-- Lyrics sync nudge. "+" brings the words forward (fixes lyrics running late),
      "-" pushes them back. Shown only while the track has timed lyrics to shift —
-     see renderSync() in spotify.js. -->
+     see renderSync() in nowplaying.js. -->
 <div id="sync-btn" class="sync-btn">
   <button class="sync-step" data-sync="-1" aria-label="Lyrics later">-</button>
   <span class="sync-value" id="sync-value">0.00s</span>
   <button class="sync-step" data-sync="1" aria-label="Lyrics earlier">+</button>
 </div>
 
-<!-- ===================== SPOTIFY ===================== -->
-<section id="spotify-mode">
-  <img class="spotify-bg" id="spotify-bg" alt="" />
-  <div class="spotify-layout">
+<!-- ===================== nowplaying ===================== -->
+<section id="nowplaying-mode">
+  <img class="nowplaying-bg" id="nowplaying-bg" alt="" />
+  <div class="nowplaying-layout">
 
     <div class="player-column">
       <div class="album-art-box">
@@ -293,7 +293,7 @@
   </div>
 
   <!-- Centred on the screen rather than inside the player column. Siblings of
-       .spotify-layout, so they are positioned against #spotify-mode. -->
+       .nowplaying-layout, so they are positioned against #nowplaying-mode. -->
   <div class="progress-row" id="progress-row">
     <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
     <div class="progress-times">
@@ -302,9 +302,9 @@
     </div>
   </div>
 
-  <div class="spotify-controls" id="spotify-controls">
+  <div class="nowplaying-controls" id="nowplaying-controls">
     <button class="ctrl-btn" id="ctrl-prev" aria-label="Previous">&#9198;</button>
-    <!-- Glyph is swapped by spotify.js to match playback state; nothing plays at boot. -->
+    <!-- Glyph is swapped by nowplaying.js to match playback state; nothing plays at boot. -->
     <button class="ctrl-btn" id="ctrl-playpause" aria-label="Play or pause">&#9654;</button>
     <button class="ctrl-btn" id="ctrl-next" aria-label="Next">&#9197;</button>
   </div>
@@ -313,7 +313,7 @@
 
 <script src="js/wallpaper.js"></script>
 <script src="js/script.js"></script>
-<script src="js/spotify.js"></script>
+<script src="js/nowplaying.js"></script>
 <script src="js/sleep.js"></script>
 <script src="js/idle.js"></script>
 </body>

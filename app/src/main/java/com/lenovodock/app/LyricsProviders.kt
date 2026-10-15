@@ -39,6 +39,8 @@ object LyricsProviders {
         durationSec: Long,
         field: String = SYNCED,
     ): String? {
+        // /api/get needs an artist; with none, the search pass takes over.
+        if (artist.isBlank()) return null
         val url = "$API/get?track_name=${enc(title)}&artist_name=${enc(artist)}" +
             "&album_name=${enc(album)}&duration=$durationSec"
         val body = httpGet(url)
@@ -67,6 +69,12 @@ object LyricsProviders {
         durationSec: Long,
         field: String = SYNCED,
     ): String? {
+        // No artist tag at all (offline files). Duration is then the only filter, so it
+        // gets the same tight bound editMatch uses, and an unknown duration can't be searched.
+        if (artist.isBlank()) {
+            if (durationSec <= 0) return null
+            return searchOnce(title, null, durationSec, EDIT_TOLERANCE_SEC, field)
+        }
         searchOnce(title, artist, durationSec, LRCLIB_TOLERANCE_SEC, field)?.let { return it }
         val lead = artist.substringBefore(',').trim()
         if (lead == artist || lead.isEmpty()) return null
@@ -107,7 +115,7 @@ object LyricsProviders {
      * than to wrong lyrics.
      */
     fun neteaseMatch(title: String, artist: String, durationSec: Long): String? {
-        val body = httpGet("$NETEASE/search/get?s=${enc("$title $artist")}&type=1&limit=5", NETEASE_HEADERS)
+        val body = httpGet("$NETEASE/search/get?s=\${enc(\"\$title \$artist\".trim())}&type=1&limit=5", NETEASE_HEADERS)
             ?: return null
         val songs = JSONObject(body).optJSONObject("result")?.optJSONArray("songs")
         if (songs == null || songs.length() == 0) {

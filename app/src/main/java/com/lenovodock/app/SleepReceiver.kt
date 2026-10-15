@@ -33,7 +33,7 @@ class SleepReceiver : BroadcastReceiver() {
         clearDeadline(context)
         // begin() declines when no fade window is set or the volume is already down,
         // and then the timer stops the music outright exactly as it always did.
-        if (!SleepFade.begin(context)) MediaListenerService.pauseSpotify(context)
+        if (!SleepFade.begin(context)) MediaListenerService.pauseActivePlayers(context)
     }
 
     companion object {

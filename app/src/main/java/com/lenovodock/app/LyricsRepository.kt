@@ -57,11 +57,15 @@ object LyricsRepository {
 
     /** Call whenever a NowPlaying snapshot arrives. No-ops if the track hasn't changed. */
     fun onTrack(np: NowPlaying) {
-        val title = np.title
-        val artist = np.artist
+        // Spotify's metadata is already clean, and its " - " titles are real version
+        // labels that editMatch relies on, so only other players are cleaned.
+        val (title, artist) =
+            if (np.isSpotify) np.title to np.artist else TitleCleaner.clean(np.title, np.artist)
         val album = np.album
-        if (title.isBlank() || artist.isBlank()) {
-            Log.d(TAG, "skip: blank title/artist (title='$title' artist='$artist')")
+        // The artist may be blank (offline files with no tags): the providers then
+        // look up by title and duration alone.
+        if (title.isBlank()) {
+            Log.d(TAG, "skip: blank title (artist='$artist')")
             return
         }
         val key = "$artist|$title|$album"
@@ -75,7 +79,13 @@ object LyricsRepository {
             deliver(Lyrics(emptyList(), true))
             return
         }
-        // The exact strings Spotify gave us. Mismatches against lrclib's own
+        // Podcasts, audiobooks and mixes: nothing to find, and not worth the requests.
+        if (np.durationMs > MAX_LOOKUP_MS) {
+            Log.d(TAG, "too long for a song (${np.durationMs / 60_000}min) — no lookup")
+            deliver(Lyrics(emptyList(), true))
+            return
+        }
+        // The exact strings the player gave us. Mismatches against lrclib's own
         // spelling start here, so this is the first line to read on a miss.
         Log.d(TAG, "track: title='$title' artist='$artist' album='$album' duration=${np.durationMs / 1000}s")
 
@@ -242,4 +252,5 @@ object LyricsRepository {
     // Long enough that a blip has passed, short enough to still catch most of a
     // 3-minute song's lyrics rather than arriving after the last chorus.
     private const val RETRY_DELAY_MS = 20_000L
+    private const val MAX_LOOKUP_MS = 15 * 60_000L
 }

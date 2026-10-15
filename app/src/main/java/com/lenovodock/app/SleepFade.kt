@@ -94,7 +94,7 @@ object SleepFade {
             schedule(context, prefs(context).getLong(KEY_INTERVAL, 0L))
         } else {
             Log.d(TAG, "fade: floor reached — pausing")
-            MediaListenerService.pauseSpotify(context)
+            MediaListenerService.pauseActivePlayers(context)
             restore(context)
         }
     }

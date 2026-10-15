@@ -34,7 +34,7 @@
   /* Appearance sizes. Set on :root by script.js from the saved preference, so
      both this file and spotify.css scale off the same value. */
   --clock-scale: 1;
-  --spotify-scale: 1;
+  --nowplaying-scale: 1;
   /* Separate from --spotify-scale: the lyrics are read from across the room while
      the album art is not, so they need their own ladder and a longer one. */
   --lyric-scale: 1;
@@ -319,7 +319,7 @@ button {
   z-index: 6;
 }
 
-body.mode-spotify .sleep-btn { display: flex; }
+body.mode-nowplaying .sleep-btn { display: flex; }
 
 .sleep-btn.armed {
   color: rgb(var(--accent-rgb));
@@ -330,7 +330,7 @@ body.mode-spotify .sleep-btn { display: flex; }
   transform: scale(0.94);
 }
 
-/* ---------- Lyrics sync nudge (Spotify mode only) ----------
+/* ---------- Lyrics sync nudge (NowPlaying mode only) ----------
    Bottom-right, where .add-btn sits in clock mode and nothing does in this one.
    Same pill, height and baseline as the gear and the sleep control. Only the
    container carries the idle transition — the steps inside need their own
@@ -352,7 +352,7 @@ body.mode-spotify .sleep-btn { display: flex; }
 
 /* Two conditions, one per owner: CSS knows the mode, renderSync() knows whether
    the track has timed lyrics worth shifting. */
-body.mode-spotify .sync-btn.visible {
+body.mode-nowplaying .sync-btn.visible {
   display: flex;
 }
 

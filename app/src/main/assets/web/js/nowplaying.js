@@ -1,8 +1,8 @@
 /* ============================================================
-   Spotify now-playing mode — fed by native media-session data
-   (window.LenovoDock.onNowPlaying / onPlaybackGone / onLyrics).
+   Now-playing mode — fed by native media-session data from whichever player
+   is active (window.LenovoDock.onNowPlaying / onPlaybackGone / onLyrics).
 
-   Owns: mode switching (play -> Spotify, ~30s grace -> Clock),
+   Owns: mode switching (play -> Now Playing, ~30s grace -> Clock),
    pausing the wallpaper video, album art (one setter for thumb +
    blurred bg), song/artist, progress bar, and the scrolling
    lyrics list.
@@ -10,7 +10,7 @@
 window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   'use strict';
 
-  const GRACE_MS = 30000;      // keep Spotify mode this long after playback stops
+  const GRACE_MS = 30000;      // keep Now Playing mode this long after playback stops
   const LYRIC_OFFSET_MS = 100; // show lyrics this far ahead of actual playback position
   const LYRIC_TICK_MS = 100;   // how often the active line is re-checked
   const NEAR = 3;              // lines either side of the active one that stay visible
@@ -21,7 +21,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   const GLYPH_PLAY = '▶'; // U+25B6 — old enough that Roboto covers it, so it stays text
   // Shown during an ad break. Ads and lyric-less tracks both deliver an empty list,
   // so without this the dock reads as broken for 30 seconds twice an hour.
-  const AD_MESSAGE = 'Just a moment… Spotify is playing an ad';
+  const AD_MESSAGE = 'Just a moment… an ad is playing';
   const SYNC_STEP_MS = 250;    // one tap of the nudge
   const SYNC_LIMIT_MS = 5000;  // past this it is the wrong record, not a timing fault
   const SYNC_KEY = 'lyric-offsets';
@@ -29,7 +29,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   let np = null;          // latest snapshot
   let recvAt = 0;         // performance.now() when it arrived
   let syncOffsetMs = 0;   // this track's saved nudge, cached so lyricTick misses storage
-  let spotifyActive = false;
+  let nowPlayingActive = false;
   let graceTimer = null;
   let manualOverride = false; // a hand-picked mode, held until playback changes
   let lastPlaying = null;     // previous snapshot's playing flag, to spot that change
@@ -48,7 +48,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   const $ = (id) => document.getElementById(id);
   const els = {};
   function cacheEls() {
-    ['spotify-mode', 'spotify-bg', 'album-art-img', 'song-name', 'artist-names',
+    ['nowplaying-mode', 'nowplaying-bg', 'album-art-img', 'song-name', 'artist-names',
      'playlist-name', 'progress-elapsed', 'progress-total', 'progress-fill', 'bg-video',
      'lyrics-window', 'ctrl-prev', 'ctrl-playpause', 'ctrl-next', 'mode-btn',
      'sync-btn', 'sync-value']
@@ -68,7 +68,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
       buildLyrics([]);
     }
     renderMeta(data);
-    // A hand-picked mode holds until playback actually starts or stops. Spotify
+    // A hand-picked mode holds until playback actually starts or stops. The player
     // pushes state updates throughout a track, and without this the next one
     // would silently undo the choice.
     if (lastPlaying !== null && data.playing !== lastPlaying) manualOverride = false;
@@ -76,8 +76,8 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     if (!manualOverride) {
       if (data.playing) {
         cancelExit();
-        if (!spotifyActive) enterSpotify();
-      } else if (spotifyActive) {
+        if (!nowPlayingActive) enterNowPlaying();
+      } else if (nowPlayingActive) {
         scheduleExit();
       }
     }
@@ -88,7 +88,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function onPlaybackGone() {
     if (np) np.playing = false;
     renderPlayState(false);
-    if (spotifyActive && !manualOverride) scheduleExit();
+    if (nowPlayingActive && !manualOverride) scheduleExit();
   }
 
   // Play is a glyph, pause is drawn by CSS: every pause codepoint either falls
@@ -100,7 +100,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     btn.textContent = playing ? '' : GLYPH_PLAY;
   }
 
-  // The glyph is deliberately NOT flipped on tap. Spotify pushes a new playback
+  // The glyph is deliberately NOT flipped on tap. The player pushes a new playback
   // state within ~100ms, so letting that drive the icon means it can never
   // disagree with what is actually happening — an optimistic flip would lie
   // whenever a command is rejected (ad playing, session torn down).
@@ -206,7 +206,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function renderSync() {
     // Only timed lyrics have anything to shift: plain ones are scrolled by track
     // progress, and a window showing a message has no timeline at all. Mode is CSS's
-    // half of this — see body.mode-spotify .sync-btn.visible.
+    // half of this — see body.mode-nowplaying .sync-btn.visible.
     els['sync-btn'].classList.toggle('visible', !plainMode && lyrics.length > 0);
     const s = syncOffsetMs / 1000;
     els['sync-value'].textContent = `${s > 0 ? '+' : ''}${s.toFixed(2)}s`;
@@ -297,32 +297,32 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
 
   // ---- mode switching ----
   // The button always names where it will take you, and is rendered from
-  // spotifyActive rather than toggled, so an automatic switch relabels it too.
+  // nowPlayingActive rather than toggled, so an automatic switch relabels it too.
   function renderModeButton() {
-    els['mode-btn'].textContent = spotifyActive ? 'Clock' : 'Spotify';
+    els['mode-btn'].textContent = nowPlayingActive ? 'Clock' : 'Now Playing';
   }
 
   function toggleMode() {
     manualOverride = true;
     cancelExit();
-    if (spotifyActive) exitToClock(); else enterSpotify();
+    if (nowPlayingActive) exitToClock(); else enterNowPlaying();
   }
 
-  function enterSpotify() {
-    spotifyActive = true;
-    document.body.classList.add('mode-spotify');
-    LenovoDock.onModeChanged(); // album colour is Spotify mode's; reads the class above
+  function enterNowPlaying() {
+    nowPlayingActive = true;
+    document.body.classList.add('mode-nowplaying');
+    LenovoDock.onModeChanged(); // album colour is this mode's; reads the class above
     renderModeButton();
     if (els['bg-video']) els['bg-video'].pause();
-    // #spotify-mode is display:none until now, so anything measured before this
+    // #nowplaying-mode is display:none until now, so anything measured before this
     // point measured zero. Re-measure and re-seat the active line.
     measure();
     reseat();
   }
 
   function exitToClock() {
-    spotifyActive = false;
-    document.body.classList.remove('mode-spotify');
+    nowPlayingActive = false;
+    document.body.classList.remove('mode-nowplaying');
     LenovoDock.onModeChanged(); // hands the dock back to the selected theme
     renderModeButton();
     if (els['bg-video']) els['bg-video'].play().catch(() => {});
@@ -341,14 +341,14 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   function setArt(url) {
     if (url === lastArt) return;
     lastArt = url;
-    const mode = els['spotify-mode'];
+    const mode = els['nowplaying-mode'];
     if (!url) { mode.classList.remove('has-art'); return; }
     // Reveal art (and hide the placeholder) only once it has actually loaded,
     // so a cold fetch shows the placeholder instead of a blank box.
     const img = els['album-art-img'];
     img.onload = () => mode.classList.add('has-art');
     img.src = url;
-    els['spotify-bg'].src = url;
+    els['nowplaying-bg'].src = url;
   }
 
   function renderMeta(d) {
@@ -365,7 +365,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     if (!np) return 0;
     const drift = np.playing ? (performance.now() - recvAt) * (np.speed || 1) : 0;
     const pos = np.positionMs + drift;
-    // Clamp only against a duration we actually have. Spotify reports 0 while
+    // Clamp only against a duration we actually have. Players report 0 while
     // metadata settles, and min(0, pos) pinned the position at zero — which
     // freezes the lyrics wherever they had reached and never recovers.
     return np.durationMs > 0 ? Math.min(np.durationMs, pos) : pos;
@@ -377,7 +377,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   const lyricPos = () => interpolatedPos() + LYRIC_OFFSET_MS + syncOffsetMs;
 
   function tick() {
-    if (!spotifyActive || !np) return;
+    if (!nowPlayingActive || !np) return;
     const pos = interpolatedPos();
     els['progress-elapsed'].textContent = fmt(pos);
     els['progress-fill'].style.width =
@@ -388,7 +388,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   // fill, but at 1s a line can land a full second late — or two lines can pass
   // inside one tick, skipping a line outright.
   function lyricTick() {
-    if (!spotifyActive || !np) return;
+    if (!nowPlayingActive || !np) return;
     const pos = lyricPos();
     updateLyrics(pos);
     paintGap(pos);

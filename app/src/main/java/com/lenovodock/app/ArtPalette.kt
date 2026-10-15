@@ -74,20 +74,24 @@ object ArtPalette {
     }
 
     private fun download(url: String): Bitmap? = try {
-        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 5000
-            readTimeout = 5000
-        }
-        if (conn.responseCode != 200) {
-            null
+        if (url.startsWith("file://")) {
+            // Art saved by ArtCache from a player's bitmap or content URI: already on disk.
+            BitmapFactory.decodeFile(url.removePrefix("file://"), BitmapFactory.Options().apply {
+                inSampleSize = DOWNSAMPLE
+            })
         } else {
-            conn.inputStream.use {
-                // Spotify's art is 640px square. A histogram needs far fewer pixels
-                // than that, and full-size decoding on a 2GB device to pick one colour
-                // is waste, so it comes down to 80px on the way in.
-                BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply {
-                    inSampleSize = DOWNSAMPLE
-                })
+            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+            if (conn.responseCode != 200) {
+                null
+            } else {
+                conn.inputStream.use {
+                    BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply {
+                        inSampleSize = DOWNSAMPLE
+                    })
+                }
             }
         }
     } catch (e: Exception) {

@@ -1,10 +1,10 @@
 /* ============================================================
-   SPOTIFY MODE — fed by the native media session.
-   Visible only when <body> has .mode-spotify (managed by spotify.js).
+   NOW PLAYING MODE — fed by the native media session of whichever player is active.
+   Visible only when <body> has .mode-nowplaying (managed by nowplaying.js).
    Tokens (--fg, --ease-*, etc.) are shared from style.css.
    ============================================================ */
 
-#spotify-mode {
+#nowplaying-mode {
   position: absolute;
   inset: 0;
   display: none;
@@ -15,21 +15,21 @@
      nothing can silently stay fixed while its neighbours move.
      Deliberately NOT em: an em length resolves against the element's OWN
      font-size, so any rule that sets both (.ctrl-btn does) would scale twice. */
-  --su: calc(1rem * var(--spotify-scale));
+  --su: calc(1rem * var(--nowplaying-scale));
   /* One source of truth for the lyric type size, shared by the lines and the
      no-lyrics message. */
   --lyric-font: calc(clamp(1.9rem, 3vw, 2.9rem) * var(--lyric-scale));
 }
-body.mode-spotify #spotify-mode { display: block; }
+body.mode-nowplaying #nowplaying-mode { display: block; }
 
-/* Clock UI + wallpaper video give way to Spotify mode. */
+/* Clock UI + wallpaper video give way to Now Playing mode. */
 /* The gear stays: settings are reachable in both modes. */
-body.mode-spotify #clock-mode,
-body.mode-spotify .add-btn { display: none; }
-body.mode-spotify .bg-video { opacity: 0; }
+body.mode-nowplaying #clock-mode,
+body.mode-nowplaying .add-btn { display: none; }
+body.mode-nowplaying .bg-video { opacity: 0; }
 
 /* ---- blurred album-art background ---- */
-.spotify-bg {
+.nowplaying-bg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -40,7 +40,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   opacity: 0;
   transition: opacity 0.6s var(--ease-smooth);
 }
-#spotify-mode.has-art .spotify-bg { opacity: 1; }
+#nowplaying-mode.has-art .nowplaying-bg { opacity: 1; }
 
 /* Graded rather than flat. The lyrics need far more separation from the backdrop
    than the sleeve does, so the darkening is weighted to the right — deeper under
@@ -50,7 +50,7 @@ body.mode-spotify .bg-video { opacity: 0; }
    The ramp runs 22%→62%, a long soft crossfade landing in the gap between the two
    columns, and the whole thing is full-bleed. Nothing has an edge, so there is no
    object to notice: it reads as lighting, not as a panel. */
-#spotify-mode::after {
+#nowplaying-mode::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -64,7 +64,7 @@ body.mode-spotify .bg-video { opacity: 0; }
 /* ---- two-column layout ----
    Lifted so the columns clear the progress row and transport below them: those
    reach roughly 15vh up from the bottom edge. */
-.spotify-layout {
+.nowplaying-layout {
   position: relative;
   z-index: 1;
   height: 100%;
@@ -86,7 +86,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   display: flex;
   flex-direction: column;
   flex: none;
-  width: calc(min(26vw, 340px) * var(--spotify-scale));
+  width: calc(min(26vw, 340px) * var(--nowplaying-scale));
 }
 
 /* The sleeve is the one solid object on this screen, so it carries the only real
@@ -109,7 +109,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   opacity: 0;
   transition: opacity 0.4s var(--ease-smooth);
 }
-#spotify-mode.has-art #album-art-img { opacity: 1; }
+#nowplaying-mode.has-art #album-art-img { opacity: 1; }
 
 .album-art-placeholder {
   position: absolute;
@@ -121,7 +121,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   font-size: calc(1.3 * var(--su));
   letter-spacing: 0.05em;
 }
-#spotify-mode.has-art .album-art-placeholder { display: none; }
+#nowplaying-mode.has-art .album-art-placeholder { display: none; }
 
 /* Same halo as the lyrics — this column sits over the lightest part of the grade,
    so it needs the separation more than its position suggests. Title and artist are
@@ -352,7 +352,7 @@ body.mode-spotify .bg-video { opacity: 0; }
      119vw — the bar would be wider than the screen and its end labels would sit off
      both edges. Clamped at 90vw it stops level with the 5vw the gear and sync pills
      occupy, however far the ladder is pushed. */
-  width: min(calc(min(82vw, 1100px) * var(--spotify-scale)), 90vw);
+  width: min(calc(min(82vw, 1100px) * var(--nowplaying-scale)), 90vw);
   z-index: 1;
 }
 .progress-times {
@@ -395,7 +395,7 @@ body.mode-spotify .bg-video { opacity: 0; }
    column they only added three heavy blobs. Glyphs alone, with the halo every other
    piece of type on this screen carries. Play/pause is the one emphasis — it is the
    button you actually reach for. */
-.spotify-controls {
+.nowplaying-controls {
   position: absolute;
   left: 50%;
   bottom: 2.5vh;
@@ -435,7 +435,7 @@ body.mode-spotify .bg-video { opacity: 0; }
   color: var(--fg);
 }
 
-/* Pause bars, drawn rather than typed — see renderPlayState() in spotify.js for
+/* Pause bars, drawn rather than typed — see renderPlayState() in nowplaying.js for
    why no codepoint works here. Tuned to sit at the same visual weight as the
    ⏮ ⏭ glyphs: thin strokes with clear air between them, not a solid block. */
 .ctrl-btn.is-playing {
