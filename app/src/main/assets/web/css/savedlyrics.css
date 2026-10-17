@@ -1,0 +1,148 @@
+/* ============================================================
+   SAVED LYRICS — the Save Lyrics button, the bottom-left control cluster it
+   rearranges, and the Settings list that manages what was saved.
+
+   Loaded after nowplaying.css and before idle.css. The button's glass surface is
+   not declared here: it comes from panels.css, shared with the other floating
+   buttons, and the fade-when-idle opacity comes from idle.css.
+   ============================================================ */
+
+/* ---------- Bottom-left cluster ----------
+   Sleep and the lyric nudge used to be positioned independently — sleep beside the
+   gear, the nudge at the bottom right. The nudge now sits next to sleep, and a
+   guessed pixel offset would overlap the moment sleep's width changed with the
+   font or size. A flex row lets the two lay themselves out: each keeps its own
+   rules for when it is shown, and this only decides where they stand.
+
+   .np-left-controls .x outranks a bare .x, so these position:static declarations
+   beat the absolute positioning style.css gave each button. */
+.np-left-controls {
+  position: absolute;
+  left: calc(5vw + 3.6rem); /* clears the gear: its width plus a gap, same as sleep had */
+  bottom: 4vh;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  z-index: 6;
+}
+
+.np-left-controls .sleep-btn,
+.np-left-controls .sync-btn {
+  position: static;
+}
+
+/* ---------- Save Lyrics (bottom right, Now Playing only) ----------
+   Where the "+" sits in clock mode, which this mode hides. Same pill, height and
+   baseline as the gear and sleep. Two conditions, one per owner, like the sync
+   nudge: CSS knows the mode, renderSave() in nowplaying.js knows whether there are
+   lyrics on screen worth keeping. The transition carries opacity itself because
+   `transition` is a single property — see idle.css. */
+.save-btn {
+  position: absolute;
+  right: 5vw;
+  bottom: 4vh;
+  height: 2.8rem;
+  display: none;
+  align-items: center;
+  padding: 0 1.1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  border-radius: 999px;
+  transition: transform 0.25s var(--ease-spring), color 0.25s, border-color 0.25s,
+    opacity 0.5s var(--ease-smooth); /* idle fade — see idle.css */
+  z-index: 6;
+}
+
+body.mode-nowplaying .save-btn.visible { display: flex; }
+
+/* Saved state matches the armed sleep control: the theme accent is the strongest
+   colour signal available and needs no extra token. */
+.save-btn.saved {
+  color: rgb(var(--accent-rgb));
+  border-color: rgb(var(--accent-rgb) / 0.8);
+}
+
+.save-btn:active { transform: scale(0.94); }
+
+/* ---------- Settings list ---------- */
+
+/* Rows can outnumber what 42vh holds, so this section scrolls, like the wallpaper
+   grid. On the wrapper, because the wrapper is what gets .open. */
+.saved-lyrics-section.open {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Delete stays hidden until Remove puts the list into select mode, so the
+   destructive control is never one mistap away from a full list. */
+#saved-delete { display: none; }
+.saved-lyrics-section.picking #saved-delete { display: inline-block; }
+
+.saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* One song per line. A chip would wrap two names into a ragged cloud; a row keeps
+   title and artist aligned down the list. */
+.saved-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.55rem 0.9rem;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg-dim);
+  background: rgb(var(--fg-rgb) / 0.06);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  transition: transform 0.2s var(--ease-spring), background 0.2s, color 0.2s, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.saved-lyrics-section.picking .saved-row:active { transform: scale(0.99); }
+
+.saved-row-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.saved-row-artist {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-row-tag {
+  flex: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* In select mode a tap marks for deletion, so the marked state has to be
+   unmistakable. Same red as the wallpaper library's marked chips. */
+.saved-lyrics-section.picking .saved-row.marked {
+  color: rgb(255 138 128);
+  border-color: rgb(255 138 128);
+  background: rgb(255 138 128 / 0.18);
+}
+
+.saved-lyrics-section.picking .saved-row.marked .saved-row-title {
+  color: inherit;
+}

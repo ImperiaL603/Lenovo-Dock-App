@@ -2,6 +2,7 @@ package com.lenovodock.app
 
 import android.webkit.JavascriptInterface
 import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * JS bridge exposed to the WebView as `AndroidMedia`.
@@ -79,6 +80,39 @@ class MediaBridge(private val context: MainActivity) {
         val names = (0 until arr.length()).map { arr.getString(it) }
         return WallpaperStore.delete(context, names)
     }
+
+    /**
+     * Saved lyrics. Native owns them — the file on disk is the truth — so the page
+     * asks each time rather than keeping its own idea of what is saved.
+     */
+    @JavascriptInterface
+    fun saveCurrentLyrics(): Boolean = LyricsRepository.saveCurrent(context)
+
+    @JavascriptInterface
+    fun currentLyricsSaved(): Boolean = LyricsRepository.isCurrentSaved(context)
+
+    /** JSON array of {id, title, artist, synced, lines, savedAt}, sorted by title. */
+    @JavascriptInterface
+    fun listSavedLyrics(): String {
+        val arr = JSONArray()
+        SavedLyrics.list(context).forEach {
+            arr.put(JSONObject().apply {
+                put("id", it.id); put("title", it.title); put("artist", it.artist)
+                put("synced", it.synced); put("lines", it.lines); put("savedAt", it.savedAt)
+            })
+        }
+        return arr.toString()
+    }
+
+    /** Takes a JSON array of ids from listSavedLyrics; returns how many were removed. */
+    @JavascriptInterface
+    fun deleteSavedLyrics(idsJson: String): Int {
+        val arr = JSONArray(idsJson)
+        return SavedLyrics.delete(context, (0 until arr.length()).map { arr.getString(it) })
+    }
+
+    @JavascriptInterface
+    fun deleteAllSavedLyrics(): Int = SavedLyrics.deleteAll(context)
 
     companion object {
         const val NAME = "AndroidMedia"

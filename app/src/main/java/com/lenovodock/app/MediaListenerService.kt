@@ -143,7 +143,7 @@ class MediaListenerService : NotificationListenerService() {
         val np = current?.let(::snapshot)
         NowPlayingRepository.update(np)
         logSnapshot(np)
-        np?.let(LyricsRepository::onTrack)
+        np?.let { LyricsRepository.onTrack(this, it) }
         ArtPalette.onArt(np?.art)
         // Takes the null too: a vanished session has to release the mute, so this
         // cannot sit inside the let above.

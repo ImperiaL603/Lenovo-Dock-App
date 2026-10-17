@@ -50,7 +50,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     ['nowplaying-mode', 'nowplaying-bg', 'album-art-img', 'song-name', 'artist-names',
      'playlist-name', 'progress-elapsed', 'progress-total', 'progress-fill', 'bg-video',
      'lyrics-window', 'ctrl-prev', 'ctrl-playpause', 'ctrl-next', 'mode-btn',
-     'sync-btn', 'sync-value']
+     'sync-btn', 'sync-value', 'save-lyrics-btn']
       .forEach((id) => { els[id] = $(id); });
   }
 
@@ -176,6 +176,7 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     els['lyrics-window'].appendChild(track);
     measure();
     renderSync();
+    renderSave();
   }
 
   /* ---- per-track lyric sync ----
@@ -212,6 +213,21 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     els['sync-btn'].classList.toggle('visible', !plainMode && lyrics.length > 0);
     const s = syncOffsetMs / 1000;
     els['sync-value'].textContent = `${s > 0 ? '+' : ''}${s.toFixed(2)}s`;
+  }
+
+
+  // Whether a song is saved is native's to say — the file is the truth — so the button
+  // is re-read from it every time rather than tracked here. That is also what keeps it
+  // right when a song saved earlier comes round again, and after a delete in Settings.
+  // Hidden when there are no lyrics on screen: nothing to keep.
+  function renderSave() {
+    const btn = els['save-lyrics-btn'];
+    const has = lyrics.length > 0 && typeof AndroidMedia !== 'undefined';
+    btn.classList.toggle('visible', has);
+    if (!has) return;
+    const saved = AndroidMedia.currentLyricsSaved();
+    btn.classList.toggle('saved', saved);
+    btn.textContent = saved ? 'Saved' : 'Save Lyrics';
   }
 
   // Reading offsetTop forces layout, so this runs only when geometry can actually
@@ -410,6 +426,16 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     if (d) nudgeSync(Number(d) * SYNC_STEP_MS);
   });
   renderModeButton();
+  els['save-lyrics-btn'].addEventListener('click', () => {
+    if (typeof AndroidMedia === 'undefined') return;
+    // Removing is done from Settings only, so a second tap is deliberately a no-op.
+    if (els['save-lyrics-btn'].classList.contains('saved')) return;
+    if (AndroidMedia.saveCurrentLyrics()) {
+      renderSave();
+      // Lets the Settings list pick the new song up without being reopened.
+      if (LenovoDock.onSavedLyricsChanged) LenovoDock.onSavedLyricsChanged();
+    }
+  });
   window.addEventListener('resize', remeasure);
   if (document.fonts) document.fonts.ready.then(remeasure);
   setInterval(tick, 1000);              // CSS bridges each beat with a 1s linear fill
@@ -417,5 +443,5 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
 
   // remeasure is exported for the Appearance size chips: changing them relays the
   // lyrics column, and the cached line offsets are only valid until it does.
-  return { onNowPlaying, onPlaybackGone, onLyrics, remeasure };
+  return { onNowPlaying, onPlaybackGone, onLyrics, remeasure, refreshSave: renderSave };
 })());

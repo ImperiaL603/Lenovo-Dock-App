@@ -1,18 +1,26 @@
 package com.lenovodock.app
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.ConcurrentHashMap
+import java.util.Collections
 import java.util.concurrent.Executors
 
 /**
  * Decides when to look lyrics up, which answer to keep, and hands the result to the
- * WebView as a flat, time-ordered list. One network fetch per distinct track
- * (title+artist+album), cached in memory so replaying a song doesn't re-hit the
- * network. The lookups themselves live in LyricsProviders.
+ * WebView as a flat, time-ordered list. The lookups themselves live in
+ * LyricsProviders; lyrics the owner has chosen to keep live in SavedLyrics.
+ *
+ * ORDER OF LOOKUP for one track: the in-memory cache, then a SAVED copy on disk, then
+ * the network. The saved copy comes before the network on purpose: it works with no
+ * connection at all, and it spares three or four requests per play.
+ *
+ * The in-memory cache is capped. This object lives as long as the process, and on an
+ * always-on dock that can be weeks, so an uncapped map just grows by one entry per
+ * distinct song for as long as it runs.
  *
  * No provider is authoritative. lrclib usually holds SEVERAL records per song and
  * only some carry timings; NetEase sometimes lists the exact upload and stores no
@@ -33,22 +41,51 @@ object LyricsRepository {
 
     private val main = Handler(Looper.getMainLooper())
     private val io = Executors.newSingleThreadExecutor()
-    private val cache = ConcurrentHashMap<String, Lyrics>()
+
+    /**
+     * Least-recently-used: the access-ordered LinkedHashMap drops its eldest entry
+     * once the cap is passed. The synchronized wrapper is not optional — an
+     * access-ordered map changes its own structure on every read, and this is
+     * touched from the media-session thread and the io executor both.
+     */
+    private val cache: MutableMap<String, Lyrics> = Collections.synchronizedMap(
+        object : LinkedHashMap<String, Lyrics>(16, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Lyrics>?): Boolean =
+                size > MAX_CACHED_TRACKS
+        }
+    )
 
     @Volatile
     var current: Lyrics = Lyrics(emptyList(), true)
         private set
 
+    /** The track key `current` was delivered for. Saving checks it against trackKey,
+     *  so a tap in the instant after a track change cannot file the PREVIOUS song's
+     *  lyrics under the new song's name. */
+    @Volatile
+    private var currentFor: String? = null
+
     private var observer: ((Lyrics) -> Unit)? = null
 
     // Read and written from the media-session thread, the io executor and the retry
-    // posted to main, so neither of these can be a plain field.
+    // posted to main, so none of these can be a plain field.
     @Volatile
     private var lastKey: String? = null
+
+    /** The track being followed, as the key and the cleaned strings it was built from.
+     *  Unlike lastKey these are never cleared by the retry, so a save always has them. */
+    @Volatile private var trackKey: String? = null
+    @Volatile private var trackTitle: String = ""
+    @Volatile private var trackArtist: String = ""
+    @Volatile private var trackAlbum: String = ""
 
     /** The one key already given a second chance, so the retry can't become a loop. */
     @Volatile
     private var retriedKey: String? = null
+
+    /** Kept for the delayed retry, which has no caller to borrow a Context from. */
+    @Volatile
+    private var appContext: Context? = null
 
     fun setObserver(o: ((Lyrics) -> Unit)?) {
         observer = o
@@ -56,7 +93,9 @@ object LyricsRepository {
     }
 
     /** Call whenever a NowPlaying snapshot arrives. No-ops if the track hasn't changed. */
-    fun onTrack(np: NowPlaying) {
+    fun onTrack(context: Context, np: NowPlaying) {
+        val ctx = context.applicationContext
+        appContext = ctx
         // Spotify's metadata is already clean, and its " - " titles are real version
         // labels that editMatch relies on, so only other players are cleaned.
         val (title, artist) =
@@ -74,24 +113,38 @@ object LyricsRepository {
         // the song resuming afterwards would match the pre-ad key, be treated as
         // unchanged, and never get its lyrics re-delivered.
         lastKey = key
+        trackKey = key
+        trackTitle = title
+        trackArtist = artist
+        trackAlbum = album
         if (np.isAd) {
             Log.d(TAG, "ad break — no lookup ('$title' / '$artist')")
-            deliver(Lyrics(emptyList(), true))
+            deliver(Lyrics(emptyList(), true), key)
             return
         }
         // Podcasts, audiobooks and mixes: nothing to find, and not worth the requests.
         if (np.durationMs > MAX_LOOKUP_MS) {
             Log.d(TAG, "too long for a song (${np.durationMs / 60_000}min) — no lookup")
-            deliver(Lyrics(emptyList(), true))
+            deliver(Lyrics(emptyList(), true), key)
             return
         }
         // The exact strings the player gave us. Mismatches against lrclib's own
         // spelling start here, so this is the first line to read on a miss.
         Log.d(TAG, "track: title='$title' artist='$artist' album='$album' duration=${np.durationMs / 1000}s")
 
-        cache[key]?.let { Log.d(TAG, "cache hit: ${it.lines.size} lines"); deliver(it); return }
+        cache[key]?.let { Log.d(TAG, "cache hit: ${it.lines.size} lines"); deliver(it, key); return }
 
         io.execute {
+            // A saved copy is read off the main thread (it is a file) and tried before
+            // any request, so a song kept earlier plays with the network down.
+            val saved = SavedLyrics.load(ctx, key)
+            if (saved != null) {
+                Log.d(TAG, "saved copy: ${saved.lines.size} lines — no lookup")
+                cache[key] = saved
+                if (key == lastKey) deliver(saved, key)
+                return@execute
+            }
+
             val lyrics = fetch(title, artist, album, np.durationMs / 1000)
             // Only successes are cached. An empty result means "a timeout, a 5xx or
             // no timed record" — caching that would keep the track blank for the rest
@@ -99,9 +152,26 @@ object LyricsRepository {
             if (lyrics.lines.isNotEmpty()) cache[key] = lyrics
             // Guard against a track change that happened while this fetch was in flight.
             if (key != lastKey) return@execute
-            deliver(lyrics)
+            deliver(lyrics, key)
             if (lyrics.lines.isEmpty()) scheduleRetry(key)
         }
+    }
+
+    /**
+     * Writes the lyrics on screen to disk. False when there is nothing to save, or
+     * when what is in `current` belongs to a different track than the one now playing.
+     */
+    fun saveCurrent(context: Context): Boolean {
+        val key = trackKey ?: return false
+        val lyrics = current
+        if (currentFor != key || lyrics.lines.isEmpty()) return false
+        return SavedLyrics.save(context, key, trackTitle, trackArtist, trackAlbum, lyrics)
+    }
+
+    /** Read from disk each time, so a delete made in Settings is reflected at once. */
+    fun isCurrentSaved(context: Context): Boolean {
+        val key = trackKey ?: return false
+        return currentFor == key && SavedLyrics.exists(context, key)
     }
 
     /**
@@ -121,15 +191,17 @@ object LyricsRepository {
         retriedKey = key
         Log.d(TAG, "empty result — retrying once in ${RETRY_DELAY_MS / 1000}s")
         main.postDelayed({
+            val ctx = appContext ?: return@postDelayed
             val np = NowPlayingRepository.current ?: return@postDelayed
             if (key != lastKey) return@postDelayed
             lastKey = null
-            onTrack(np)
+            onTrack(ctx, np)
         }, RETRY_DELAY_MS)
     }
 
-    private fun deliver(lyrics: Lyrics) {
+    private fun deliver(lyrics: Lyrics, key: String) {
         current = lyrics
+        currentFor = key
         main.post { observer?.invoke(lyrics) }
     }
 
@@ -253,4 +325,6 @@ object LyricsRepository {
     // 3-minute song's lyrics rather than arriving after the last chorus.
     private const val RETRY_DELAY_MS = 20_000L
     private const val MAX_LOOKUP_MS = 15 * 60_000L
+    // Songs kept in memory. Replays inside this window skip even the disk read.
+    private const val MAX_CACHED_TRACKS = 50
 }

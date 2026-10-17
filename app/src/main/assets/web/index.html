@@ -17,7 +17,8 @@
 <link rel="stylesheet" href="css/panels.css" />
 <link rel="stylesheet" href="css/alarms.css" />
 <link rel="stylesheet" href="css/settings.css" />
-<link rel="stylesheet" href="css/nowplaying.css" />
+  <link rel="stylesheet" href="css/nowplaying.css" />
+  <link rel="stylesheet" href="css/savedlyrics.css" />
 <link rel="stylesheet" href="css/idle.css" />
 </head>
 <body>
@@ -216,6 +217,24 @@
   </div>
 
   <button class="settings-section-label" aria-expanded="false">
+    Saved lyrics
+    <span class="section-chevron">&#9662;</span>
+  </button>
+  <div class="collapsible saved-lyrics-section">
+    <!-- Delete all asks twice. Remove puts the list into select mode and reveals
+         Delete, the same flow as the wallpaper library. -->
+    <div class="option-row" id="saved-lyrics-actions">
+      <button class="option-chip" id="saved-delete-all">Delete all</button>
+      <button class="option-chip" id="saved-remove">Remove</button>
+      <button class="option-chip danger" id="saved-delete">Delete</button>
+    </div>
+    <!-- Reuses the wallpaper status line's style; :empty hides it until there is
+         something to report. -->
+    <div class="wallpaper-status" id="saved-status"></div>
+    <div class="saved-list" id="saved-list"></div>
+  </div>
+
+  <button class="settings-section-label" aria-expanded="false">
     Sleep
     <span class="section-chevron">&#9662;</span>
   </button>
@@ -255,17 +274,24 @@
      Lives outside both sections so it stays visible in either mode. -->
 <button id="mode-btn" class="mode-btn">Now Playing</button>
 
-<!-- Sleep toggle: sits beside the gear, Now Playing mode only. -->
-<button id="sleep-btn" class="sleep-btn">Sleep</button>
+  <!-- Bottom-left cluster, Now Playing mode only: sleep, then the lyric nudge. A flex
+       row so the two lay themselves out instead of being nudged by hand. -->
+  <div class="np-left-controls">
+    <button id="sleep-btn" class="sleep-btn">Sleep</button>
 
-<!-- Lyrics sync nudge. "+" brings the words forward (fixes lyrics running late),
-     "-" pushes them back. Shown only while the track has timed lyrics to shift —
-     see renderSync() in nowplaying.js. -->
-<div id="sync-btn" class="sync-btn">
-  <button class="sync-step" data-sync="-1" aria-label="Lyrics later">-</button>
-  <span class="sync-value" id="sync-value">0.00s</span>
-  <button class="sync-step" data-sync="1" aria-label="Lyrics earlier">+</button>
-</div>
+    <!-- Lyrics sync nudge. "+" brings the words forward (fixes lyrics running late),
+         "-" pushes them back. Shown only while the track has timed lyrics to shift —
+         see renderSync() in nowplaying.js. -->
+    <div id="sync-btn" class="sync-btn">
+      <button class="sync-step" data-sync="-1" aria-label="Lyrics later">-</button>
+      <span class="sync-value" id="sync-value">0.00s</span>
+      <button class="sync-step" data-sync="1" aria-label="Lyrics earlier">+</button>
+    </div>
+  </div>
+
+  <!-- Keeps the lyrics on screen for offline use. Shown only while there are lyrics;
+       reads "Saved" when this song is already on disk. See renderSave() in nowplaying.js. -->
+  <button id="save-lyrics-btn" class="save-btn">Save Lyrics</button>
 
 <!-- ===================== nowplaying ===================== -->
 <section id="nowplaying-mode">
@@ -313,7 +339,8 @@
 
 <script src="js/wallpaper.js"></script>
 <script src="js/script.js"></script>
-<script src="js/nowplaying.js"></script>
+  <script src="js/nowplaying.js"></script>
+  <script src="js/savedlyrics.js"></script>
 <script src="js/sleep.js"></script>
 <script src="js/idle.js"></script>
 </body>
