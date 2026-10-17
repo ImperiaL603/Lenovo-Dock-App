@@ -21,7 +21,6 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
   const GLYPH_PLAY = '▶'; // U+25B6 — old enough that Roboto covers it, so it stays text
   // Shown during an ad break. Ads and lyric-less tracks both deliver an empty list,
   // so without this the dock reads as broken for 30 seconds twice an hour.
-  const AD_MESSAGE = 'Just a moment… an ad is playing';
   const SYNC_STEP_MS = 250;    // one tap of the nudge
   const SYNC_LIMIT_MS = 5000;  // past this it is the wrong record, not a timing fault
   const SYNC_KEY = 'lyric-offsets';
@@ -120,7 +119,10 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     const lines = data && Array.isArray(data.lines) ? data.lines : [];
     // Native pushes the snapshot before the lyrics for the same track, so `np`
     // already describes whatever this empty list belongs to.
-    if (!lines.length) { showLyricsMessage(np && np.ad ? AD_MESSAGE : 'No lyrics found'); return; }
+    // Decided before buildLyrics: measure() reads line positions, and they are only
+    // right once the lyrics column has its real width back.
+    els['nowplaying-mode'].classList.toggle('no-lyrics', !lines.length);
+    if (!lines.length) { buildLyrics([]); return; }
     buildLyrics(lines, !data.synced);
     // Lyrics can land mid-song (cold start, slow fetch): open on the right line,
     // and without a scroll animation, since there is nothing to scroll from.
@@ -210,16 +212,6 @@ window.LenovoDock = Object.assign(window.LenovoDock || {}, (function () {
     els['sync-btn'].classList.toggle('visible', !plainMode && lyrics.length > 0);
     const s = syncOffsetMs / 1000;
     els['sync-value'].textContent = `${s > 0 ? '+' : ''}${s.toFixed(2)}s`;
-  }
-
-  // Sits in the window rather than the track: it must stay centred, and the
-  // track's position is only meaningful when there are lines to scroll through.
-  function showLyricsMessage(text) {
-    buildLyrics([]);
-    const el = document.createElement('div');
-    el.className = 'lyrics-message';
-    el.textContent = text;
-    els['lyrics-window'].appendChild(el);
   }
 
   // Reading offsetTop forces layout, so this runs only when geometry can actually

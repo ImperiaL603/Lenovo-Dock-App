@@ -22,7 +22,7 @@
 </head>
 <body>
 
-  <!-- No src: nothing ships in the APK any more. wallpaper.js sets one from the
+  <!-- No src: nothing ships in the APK anymore. wallpaper.js sets one from the
        on-device folder, and where that folder is empty the element stays blank and
        the page's own gradient shows through. -->
   <video id="bg-video" class="bg-video" autoplay muted loop playsinline></video>
@@ -56,8 +56,8 @@
           <button class="panel-add-toggle" id="toggle-alarm-form">+ New</button>
         </div>
         <div class="inline-form" id="new-alarm-form">
-          <input type="time" id="new-alarm-time" class="form-input" />
-          <input type="text" id="new-alarm-label" class="form-input" placeholder="Label (optional)" />
+          <input type="time" id="new-alarm-time" class="form-input" aria-label="Alarm time"/>
+          <input type="text" id="new-alarm-label" class="form-input" placeholder="Label (optional)" aria-label="Alarm label"/>
           <!-- Same chip primitive as every settings row; data-day carries the
                Calendar constant and is what script.js selects on. -->
           <div class="option-row">
@@ -82,8 +82,8 @@
           <button class="panel-add-toggle" id="toggle-timer-form">+ New</button>
         </div>
         <div class="inline-form" id="new-timer-form">
-          <input type="number" id="new-timer-minutes" class="form-input" placeholder="Minutes" min="1" />
-          <input type="text" id="new-timer-label" class="form-input" placeholder="Label (optional)" />
+          <input type="number" id="new-timer-minutes" class="form-input" placeholder="Minutes" min="1" aria-label="Timer length in minutes" />
+          <input type="text" id="new-timer-label" class="form-input" placeholder="Label (optional)" aria-label="Timer label" />
           <button class="form-save-btn" id="save-timer-btn">Start Timer</button>
         </div>
         <div class="panel-list" id="timers-list">
@@ -208,7 +208,7 @@
          held natively — MediaListenerService acts on it whether or not this page
          exists — so these chips are rendered from what native reports, not from
          localStorage. -->
-    <div class="settings-subsection-label">Mute ads</div>
+    <div class="settings-subsection-label">Mute ads (when supported)</div>
     <div class="option-row" id="admute-row">
       <button class="option-chip" data-admute="off">Off</button>
       <button class="option-chip" data-admute="on">On</button>
@@ -228,7 +228,7 @@
       <button class="option-chip" data-minutes="60">60 min</button>
     </div>
     <div class="custom-row">
-      <input type="number" id="sleep-custom-min" class="form-input" placeholder="Custom min" min="1" />
+      <input type="number" id="sleep-custom-min" class="form-input" placeholder="Custom min" min="1" aria-label="Custom sleep time in minutes" />
       <button class="form-save-btn" id="sleep-custom-set">Set</button>
     </div>
     <!-- Runs AFTER the interval above, not inside it: 30 min sleep with a 5 min fade
@@ -241,7 +241,7 @@
       <button class="option-chip" data-fade="5">5 min</button>
     </div>
     <div class="custom-row">
-      <input type="number" id="fade-custom-min" class="form-input" placeholder="Custom min" min="0" />
+      <input type="number" id="fade-custom-min" class="form-input" placeholder="Custom min" min="0" aria-label="Custom fade-out time in minutes" />
       <button class="form-save-btn" id="fade-custom-set">Set</button>
     </div>
   </div>

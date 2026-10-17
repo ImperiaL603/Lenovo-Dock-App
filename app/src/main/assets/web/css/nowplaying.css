@@ -298,20 +298,6 @@ body.mode-nowplaying .bg-video { opacity: 0; }
   box-shadow: 0 0 14px rgb(var(--accent-rgb) / 0.4); /* matches the active line's glow */
 }
 
-.lyrics-message {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  transform: translateY(-50%);
-  text-align: center;
-  font-size: var(--lyric-font);
-  font-weight: 500;
-  color: var(--fg);
-  text-shadow: var(--text-halo);
-  opacity: 0.4;
-}
-
 .up-next {
   display: flex;
   align-items: baseline;
@@ -449,3 +435,13 @@ body.mode-nowplaying .bg-video { opacity: 0; }
   border-radius: 1px;
   background: var(--fg);
 }
+
+/* ---- no lyrics ----
+   With nothing to show in the lyrics column the player column is the only flex item
+   left, so justify-content:center on .nowplaying-layout centres it. display:none
+   rather than a width transition on purpose: when lyrics come back, measure() reads
+   line offsets straight away, and they are only correct once the column is at full
+   width. */
+#nowplaying-mode.no-lyrics .lyrics-column { display: none; }
+#nowplaying-mode.no-lyrics .song-name,
+#nowplaying-mode.no-lyrics .artist-names { text-align: center; }
